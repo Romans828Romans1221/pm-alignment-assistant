@@ -1,0 +1,166 @@
+/* Add this to the very top or bottom of your styles.css */
+#bg-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* Puts it behind everything else */
+    background-color: #f0f4f8; /* Match body background */
+}
+
+/* Ensure your main content is visible above the canvas */
+.container {
+    /* Keep existing styles, but ensure z-index is higher than -1 */
+    position: relative; /* Needed for z-index to work */
+    z-index: 1; /* Puts content above the background */
+    /* ... rest of your .container styles ... */
+}
+
+/* General Body and Container Styling */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f4f8; /* Very light, professional background */
+    margin: 0;
+    padding: 40px 20px;
+    display: flex; 
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; 
+    box-sizing: border-box; 
+}
+
+.container {
+    max-width: 900px; 
+    width: 100%;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 40px;
+    border-radius: 16px; /* Enhanced rounding */
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15); /* Soft, deep shadow */
+    box-sizing: border-box;
+}
+
+/* Header Styling */
+h1 {
+    color: #1a237e; /* Deep blue/indigo for professional look */
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 2.5em; 
+    font-weight: 600;
+}
+
+p {
+    color: #546e7a; /* Muted gray for body text */
+    text-align: center;
+    margin-bottom: 35px;
+    line-height: 1.6;
+    font-size: 1.1em;
+}
+
+/* Form Element Styling */
+form label {
+    display: block;
+    margin: 25px 0 10px; 
+    font-weight: bold;
+    color: #37474f; /* Darker text for labels */
+    font-size: 1.2em;
+}
+
+form textarea {
+    width: 100%;
+    padding: 15px 18px; 
+    border: 2px solid #cfd8dc; /* Solid, light border */
+    border-radius: 8px; 
+    box-sizing: border-box;
+    font-size: 1.05em;
+    resize: vertical; 
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+form textarea:focus {
+    border-color: #42a5f5; /* Light blue focus border */
+    box-shadow: 0 0 0 0.3rem rgba(66, 165, 245, 0.3); 
+    outline: none;
+}
+
+/* Button Styling */
+form button {
+    display: block;
+    width: 100%;
+    padding: 16px 20px; 
+    margin-top: 40px; 
+    background-color: #00796b; /* Teal/cyan color for action */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2em;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    box-shadow: 0 6px 15px rgba(0, 121, 107, 0.3); /* Stronger shadow */
+}
+
+form button:hover {
+    background-color: #004d40; /* Darker teal on hover */
+    transform: translateY(-3px); 
+}
+
+form button:active {
+    transform: translateY(0); 
+}
+
+/* Result Box Styling */
+.result-box {
+    margin-top: 50px; 
+    padding: 30px;
+    border: 1px solid #b3e5fc; 
+    border-radius: 10px;
+    background-color: #e3f2fd; /* Very light blue result background */
+    box-shadow: 0 4px 15px rgba(179, 229, 252, 0.5); 
+    color: #333;
+    line-height: 1.7;
+}
+
+.result-box h2 {
+    color: #0d47a1; /* Darker blue heading for results */
+    border-bottom: 2px solid #90caf9; 
+    padding-bottom: 15px;
+    margin-top: 0;
+    font-size: 2em;
+}
+.result-box h3 {
+    color: #1565c0; 
+    margin-top: 25px;
+    margin-bottom: 12px;
+    font-size: 1.4em;
+}
+.result-box ul {
+    list-style-type: '👉 '; /* Custom arrow bullet point */
+    padding-left: 20px;
+    margin-bottom: 0;
+}
+.result-box li {
+    margin-bottom: 10px;
+    padding-left: 5px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+        align-items: flex-start; /* Start from top on smaller screens */
+    }
+    .container {
+        padding: 20px;
+        border-radius: 8px;
+    }
+    h1 {
+        font-size: 1.8em;
+    }
+    form button {
+        font-size: 1.1em;
+        padding: 14px 15px;
+    }
+}

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clarity Meter AI</title>
+    <link rel="stylesheet" href="styles.css">
+    <script async src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.min.js"></script>
+</head>
+<body>
+    <canvas id="bg-canvas"></canvas> 
+
+    <div class="container">
+        <h1>Clarity Meter AI: Meeting Necessity Check</h1>
+        <p>Enter the meeting details below to see if your shared understanding is clear enough to skip the meeting.</p>
+        
+        <form id="clarityForm">
+            <label for="topicInput">Meeting Topic/Goal:</label>
+            <textarea id="topicInput" rows="2" required 
+                placeholder="e.g., Finalize launch plan for Q4 feature X"></textarea>
+            
+            <label for="understandingInput">Shared Understanding (What everyone agrees on now):</label>
+            <textarea id="understandingInput" rows="5" required 
+                placeholder="e.g., We know the feature is built, tested, and marketing is ready. We just need to agree on a time for the production rollout."></textarea>
+            
+            <button type="submit">Check Clarity</button>
+        </form>
+
+        <div id="result" class="result-box">
+            Fill out the form and click 'Check Clarity'.
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
