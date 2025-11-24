@@ -198,3 +198,52 @@ app.listen(port, HOST, () => {
 
 // --- End of Implementation for Step 7 (FINAL FIX) ---
 // ----------------------------------------------------
+
+// --- Step 4: AI Report Generator Endpoint ---
+app.post('/api/generate-report', async (req, res) => {
+  const userEmail = req.body.user;
+
+  if (!userEmail) return res.status(400).json({ error: 'User email required.' });
+
+  try {
+      // 1. Fetch last 10 goals/checks for this user
+      const snapshot = await db.collection('goals')
+          .where('user', '==', userEmail)
+          .orderBy('createdAt', 'desc')
+          .limit(10)
+          .get();
+
+      if (snapshot.empty) {
+          return res.json({ report: "No recent activity found to analyze." });
+      }
+
+      // 2. Format data into a text block for the AI
+      let historyText = "RECENT TEAM ACTIVITY:\n";
+      snapshot.forEach(doc => {
+          const data = doc.data();
+          historyText += `- Goal: "${data.title}" (Timeframe: ${data.timeframe})\n`;
+      });
+
+      // 3. Send to Gemini
+      const prompt = `
+          You are an expert Project Management Assistant. 
+          Analyze the following recent activity list. 
+          Write a concise, professional weekly status email summary for a stakeholder.
+          Highlight progress and any potential risks implied by the goals.
+          
+          ${historyText}
+      `;
+
+      const result = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+      });
+
+      const report = result.response.text();
+      res.json({ report });
+
+  } catch (error) {
+      console.error('Report Gen Error:', error);
+      res.status(500).json({ error: 'Failed to generate report.' });
+  }
+});

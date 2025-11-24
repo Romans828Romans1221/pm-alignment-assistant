@@ -139,3 +139,35 @@ async function loadUserGoals(email) {
 
 // --- 8. RE-ADD 3D BACKGROUND (Optional) ---
 // (You can paste the 3D donut code here if you want it back)
+// --- 8. REPORT GENERATOR LOGIC ---
+const reportBtn = document.getElementById('generateReportBtn');
+const reportOutput = document.getElementById('report-output');
+
+if (reportBtn) {
+    reportBtn.addEventListener('click', async () => {
+        if (!currentUser) return alert("Please log in.");
+        
+        reportOutput.style.display = 'block';
+        reportOutput.innerHTML = '<p>🧠 AI is analyzing your history and writing a report...</p>';
+
+        try {
+            const response = await fetch(`${API_URL}/api/generate-report`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user: currentUser.email })
+            });
+            
+            const data = await response.json();
+            
+            // Display the AI's response
+            reportOutput.innerHTML = `
+                <h3 style="margin-top:0; color:#673AB7;">📝 AI Weekly Summary</h3>
+                ${data.report}
+            `;
+            
+        } catch (error) {
+            console.error(error);
+            reportOutput.innerHTML = '<p style="color:red">Failed to generate report.</p>';
+        }
+    });
+}
