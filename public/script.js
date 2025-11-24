@@ -1,145 +1,141 @@
-// YOUR DEPLOYED CLOUD RUN SERVICE URL
-const API_URL = 'https://clarity-check-v2-707998044973.us-central1.run.app/clarity-check';
+// --- 1. IMPORTS ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-document.getElementById('clarityForm').addEventListener('submit', async (e) => {
-    e.preventDefault(); // Prevents the default form submission (page reload)
+// --- 2. CONFIGURATION (PASTE YOUR KEYS HERE) ---
+const firebaseConfig = {
+    apiKey: "AIzaSyDRRfZDyVMpq5t6BNCyEf6M4Dx1rcMAVLE",
+    authDomain: "clarity-pm-assistant-gcp.firebaseapp.com",
+    projectId: "clarity-pm-assistant-gcp",
+    storageBucket: "clarity-pm-assistant-gcp.firebasestorage.app",
+    messagingSenderId: "132738195526",
+    appId: "1:132738195526:web:2e13fb7c6012e1204c6a47",
+};
 
-    // 1. Get user input
-    const topic = document.getElementById('topicInput').value;
-    const understanding = document.getElementById('understandingInput').value;
-    const resultDiv = document.getElementById('result');
+// --- 3. INITIALIZE ---
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+let currentUser = null;
+// Your Cloud Run URL (No slash at the end)
+// UPDATE THIS LINE:
+const API_URL = 'https://clarity-pm-assistant-132738195526.us-central1.run.app';
 
-    // 2. Show loading state
-    resultDiv.innerHTML = '<h2>Analyzing...</h2><p>Please wait while the Gemini AI checks your clarity...</p>';
-
-    try {
-        // 3. Call your deployed Cloud Run API
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ topic, understanding }),
-        });
-
-        // Check for HTTP errors (e.g., 500 server error)
-        if (!response.ok) {
-             throw new Error(`API call failed with status: ${response.status}`);
-        }
-
-        const data = await response.json();
+// --- 4. GATEKEEPER (PROTECTS THE PAGE) ---
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        // User is logged in
+        console.log("User verified:", user.email);
+        currentUser = user;
         
-        // 4. Display the results
-        // Use a color based on the verdict for emphasis
-        let verdictColor = '#006400'; // Dark Green (Good)
-        if (data.verdict.includes('CLARITY REQUIRED')) {
-            verdictColor = '#FFA500'; // Orange (Medium)
-        } else if (data.verdict.includes('CRITICAL')) {
-            verdictColor = '#8B0000'; // Dark Red (Bad)
-        }
+        // Update UI
+        const userNameDisplay = document.getElementById('user-name');
+        if(userNameDisplay) userNameDisplay.textContent = user.displayName || user.email;
 
-        resultDiv.innerHTML = `
-            <h2>Clarity Check Complete!</h2>
-            <p><strong>Meeting Topic:</strong> ${topic}</p>
-            <p style="padding: 10px; border-radius: 4px; background-color: #f0f0f0;">
-                <strong>Verdict:</strong> 
-                <span style="font-weight: bold; color: ${verdictColor};">${data.verdict}</span>
-            </p>
-            <p><strong>Clarity Score:</strong> <span style="font-size: 1.2em;">${data.clarity_score}/10</span></p>
-            
-            <h3>Gaps & Actionable Insights:</h3>
-            <ul>
-                ${data.gaps_insights.map(gap => `<li>${gap}</li>`).join('')}
-            </ul>
-        `;
-
-    } catch (error) {
-        // 5. Display API error
-        resultDiv.innerHTML = `<p style="color: red;">Error processing request: ${error.message}</p>`;
-        console.error("API Error:", error);
+        // Load History
+        loadUserGoals(user.email);
+        
+    } else {
+        // User is NOT logged in -> Kick to Login Page
+        console.log("No user found. Redirecting...");
+        window.location.href = 'login.html';
     }
 });
 
-// --- 3D Background Animation (Donuts) ---
-let scene, camera, renderer, donuts;
-
-function init3DBackground() {
-    const canvas = document.getElementById('bg-canvas');
-    if (!canvas) return; // Exit if canvas not found (e.g., during development without HTML)
-
-    // Scene
-    scene = new THREE.Scene();
-
-    // Camera
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 5;
-
-    // Renderer
-    renderer = new THREE.WebGLRenderer({
-        canvas: canvas,
-        alpha: true, // Allow transparent background in Three.js if needed
-        antialias: true
-    });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
-    const pointLight = new THREE.PointLight(0xffffff, 1);
-    pointLight.position.set(5, 5, 5);
-    scene.add(pointLight);
-
-    // Create Donuts
-    donuts = [];
-    const geometry = new THREE.TorusGeometry(0.7, 0.3, 16, 100); // Torus (donut) shape
-    const material = new THREE.MeshStandardMaterial({ color: 0x42a5f5, roughness: 0.5, metalness: 0.8 }); // Blue, metallic
-
-    for (let i = 0; i < 15; i++) { // Create 15 donuts
-        const donut = new THREE.Mesh(geometry, material);
-        
-        // Random positions and rotations
-        donut.position.x = (Math.random() - 0.5) * 20;
-        donut.position.y = (Math.random() - 0.5) * 20;
-        donut.position.z = (Math.random() - 0.5) * 20;
-
-        donut.rotation.x = Math.random() * Math.PI;
-        donut.rotation.y = Math.random() * Math.PI;
-        donut.rotation.z = Math.random() * Math.PI;
-
-        const scale = Math.random() * 0.5 + 0.5; // Random scale between 0.5 and 1
-        donut.scale.set(scale, scale, scale);
-
-        donuts.push(donut);
-        scene.add(donut);
-    }
-
-    // Animation Loop
-    const animate = () => {
-        requestAnimationFrame(animate);
-
-        donuts.forEach(donut => {
-            donut.rotation.x += 0.005;
-            donut.rotation.y += 0.005;
-            donut.rotation.z += 0.003;
-
-            // Simple movement (optional)
-            donut.position.y += Math.sin(Date.now() * 0.0001 + donut.id) * 0.001; 
-            donut.position.x += Math.cos(Date.now() * 0.0001 + donut.id) * 0.001; 
-        });
-
-        renderer.render(scene, camera);
-    };
-
-    animate();
-
-    // Handle window resizing
-    window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+// --- 5. LOGOUT LOGIC ---
+const logoutBtn = document.getElementById('logoutBtn');
+if(logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        signOut(auth).catch((error) => console.error("Logout error:", error));
     });
 }
 
-// Initialize the 3D background when the window loads
-window.addEventListener('load', init3DBackground);
+// --- 6. MAIN APP LOGIC ---
+const form = document.getElementById('clarityForm');
+if (form) {
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault(); 
+
+        if (!currentUser) {
+            alert("You must be logged in.");
+            return;
+        }
+
+        const topic = document.getElementById('topicInput').value;
+        const understanding = document.getElementById('understandingInput').value;
+        const resultDiv = document.getElementById('result');
+
+        resultDiv.innerHTML = '<h2>Analyzing...</h2><p>Please wait...</p>';
+
+        try {
+            // A. Call Clarity API
+            const response = await fetch(`${API_URL}/clarity-check`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic, understanding }),
+            });
+
+            if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+
+            const data = await response.json();
+            
+            // B. Save to Database
+            await fetch(`${API_URL}/api/goals`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    title: topic,
+                    timeframe: "Instant Check",
+                    user: currentUser.email 
+                })
+            });
+
+            // Refresh History List
+            loadUserGoals(currentUser.email);
+
+            // C. Display Results
+            let color = '#006400';
+            if (data.verdict.includes('CLARITY REQUIRED')) color = '#FFA500';
+            else if (data.verdict.includes('CRITICAL')) color = '#8B0000';
+
+            resultDiv.innerHTML = `
+                <h2>Clarity Check Complete!</h2>
+                <p><strong>Verdict:</strong> <span style="color:${color}; font-weight:bold;">${data.verdict}</span></p>
+                <p><strong>Score:</strong> ${data.clarity_score}/10</p>
+                <h3>Insights:</h3>
+                <ul>${data.gaps_insights.map(g => `<li>${g}</li>`).join('')}</ul>
+            `;
+
+        } catch (error) {
+            resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            console.error(error);
+        }
+    });
+}
+
+// --- 7. DASHBOARD HISTORY LOGIC ---
+async function loadUserGoals(email) {
+    const listContainer = document.getElementById('goals-list');
+    if (!listContainer) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/api/goals?user=${encodeURIComponent(email)}`);
+        const goals = await response.json();
+
+        if (goals.length === 0) {
+            listContainer.innerHTML = '<p>No history found.</p>';
+            return;
+        }
+
+        listContainer.innerHTML = goals.map(goal => `
+            <div style="background: #fff; padding: 10px; margin-bottom: 10px; border-left: 4px solid #4285F4; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <strong>${goal.title}</strong><br>
+                <span style="color:#666; font-size:0.9em">${new Date(goal.createdAt._seconds * 1000).toLocaleDateString()}</span>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error("History load error:", error);
+    }
+}
+
+// --- 8. RE-ADD 3D BACKGROUND (Optional) ---
+// (You can paste the 3D donut code here if you want it back)

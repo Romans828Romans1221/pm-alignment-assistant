@@ -1,10 +1,29 @@
-// TOP OF FILE:
 const express = require('express');
-const { GoogleGenAI } = require('@google/genai'); // Line 2
+const cors = require('cors');
+const { GoogleGenAI } = require('@google/genai');
+const admin = require('firebase-admin');
+const { getFirestore } = require('firebase-admin/firestore');
 
-// --- Start of Implementation for Step 2.3 (CLEANED) ---
+//initialize app 
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+
+
+// Initialize Firebase Admin SDK (uses Cloud Run's default service account)
+admin.initializeApp();
+const db = getFirestore();
+// ... rest of your code ...
+//Initialize Gemini API
 const ai = new GoogleGenAI({apiKey: process.env.GEMINI_API_KEY}); 
 const model = 'gemini-2.5-flash';
+
+// --- Add after your Gemini model declaration (around line 9) ---
+
+
+// --- Continue with your existing code below ---
+
 // --- End of Implementation for Step 2.3 ---
 // ... rest of your server setup will follow
 
@@ -41,9 +60,7 @@ MEETING TOPIC:
 const port = process.env.PORT || 8080; 
 
 // Initializes the Express server
-const app = express();
-// Middleware to tell Express to automatically parse incoming JSON data from the user
-app.use(express.json()); 
+
 
 // --- End of Implementation for Step 4 ---
 
@@ -100,6 +117,71 @@ app.post('/clarity-check', async (req, res) => {
   
   // --- End of Implementation for Step 5 ---
 // // --- Start of Implementation for Step 7 (FINAL FIX) ---
+// --- Step 3: New Endpoint to Save Goals to Database ---
+app.post('/api/goals', async (req, res) => {
+  // 1. Get data from the user's request
+  const goalData = req.body; 
+  
+  // 2. Simple Validation: Make sure they sent a title and timeframe
+  if (!goalData.title || !goalData.timeframe) {
+      return res.status(400).json({ error: 'Missing goal title or timeframe.' });
+  }
+
+  try {
+      // 3. Save to Firestore
+      // We tell the 'db' to go to the 'goals' collection and 'add' a new document
+      const docRef = await db.collection('goals').add({
+          title: goalData.title,
+          timeframe: goalData.timeframe,
+          // We add a timestamp so we know when this happened
+          createdAt: admin.firestore.Timestamp.now()
+      });
+
+      // 4. Send Success Response
+      res.status(201).json({ 
+          message: 'Goal saved successfully to Firestore.',
+          id: docRef.id 
+      });
+
+  } catch (error) {
+      console.error('Firestore Error:', error);
+      res.status(500).json({ error: 'Failed to save goal to database.' });
+  }
+});
+
+// --- Step 3b: New Endpoint to GET User Goals ---
+app.get('/api/goals', async (req, res) => {
+  const userEmail = req.query.user; // We will send ?user=email@test.com
+
+  if (!userEmail) {
+      return res.status(400).json({ error: 'Missing user email parameter.' });
+  }
+
+  try {
+      // Query Firestore: Give me goals where 'user' matches the requester
+      const snapshot = await db.collection('goals')
+          .where('user', '==', userEmail)
+          .orderBy('createdAt', 'desc') // Newest first
+          .limit(20)
+          .get();
+
+      if (snapshot.empty) {
+          return res.json([]); // Return empty list if no goals found
+      }
+
+      // Convert snapshot to a simple array of data
+      const goals = [];
+      snapshot.forEach(doc => {
+          goals.push({ id: doc.id, ...doc.data() });
+      });
+
+      res.json(goals);
+
+  } catch (error) {
+      console.error('Firestore Fetch Error:', error);
+      res.status(500).json({ error: 'Failed to fetch goals.' });
+  }
+});
 
 // Define the required host interface for container environments
 const HOST = '0.0.0.0'; 

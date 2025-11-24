@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Clarity PM</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f4f8; margin: 0; }
+        .container { text-align: center; max-width: 400px; padding: 40px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        h1 { color: #333; margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 30px; }
+        button { width: 100%; background-color: #4285F4; color: white; padding: 15px; font-size: 1.1em; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background 0.3s; }
+        button:hover { background-color: #3367D6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to Clarity</h1>
+        <p>Sign in to access your team dashboard.</p>
+        <button id="loginBtn">Sign in with Google</button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <script>
+        // 2. YOUR CONFIG (Paste your keys here!)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDRRfZDyVMpq5t6BNCyEf6M4Dx1rcMAVLE",
+            authDomain: "clarity-pm-assistant-gcp.firebaseapp.com",
+            projectId: "clarity-pm-assistant-gcp",
+            storageBucket: "clarity-pm-assistant-gcp.firebasestorage.app",
+            messagingSenderId: "132738195526",
+            appId: "1:132738195526:web:2e13fb7c6012e1204c6a47"
+        };
+
+        // 3. Initialize
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const provider = new firebase.auth.GoogleAuthProvider();
+
+        // 4. Check Login State (Auto-redirect if already logged in)
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                console.log("User logged in:", user.email);
+                window.location.href = 'index.html';
+            }
+        });
+
+        // 5. Handle Button
+        document.getElementById('loginBtn').addEventListener('click', () => {
+            auth.signInWithPopup(provider).catch(error => {
+                alert("Login Failed: " + error.message);
+                console.error(error);
+            });
+        });
+    </script>
+</body>
+</html>

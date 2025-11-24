@@ -7,30 +7,45 @@
     <link rel="stylesheet" href="styles.css">
     <script async src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.min.js"></script>
 </head>
-<body>
-    <canvas id="bg-canvas"></canvas> 
+    <body>
+        <canvas id="bg-canvas"></canvas> 
 
-    <div class="container">
-        <h1>Clarity Meter AI: Meeting Necessity Check</h1>
-        <p>Enter the meeting details below to see if your shared understanding is clear enough to skip the meeting.</p>
-        
-        <form id="clarityForm">
-            <label for="topicInput">Meeting Topic/Goal:</label>
-            <textarea id="topicInput" rows="2" required 
-                placeholder="e.g., Finalize launch plan for Q4 feature X"></textarea>
+        <div class="main-wrapper" style="display: flex; justify-content: center; padding: 40px 20px;">
             
-            <label for="understandingInput">Shared Understanding (What everyone agrees on now):</label>
-            <textarea id="understandingInput" rows="5" required 
-                placeholder="e.g., We know the feature is built, tested, and marketing is ready. We just need to agree on a time for the production rollout."></textarea>
-            
-            <button type="submit">Check Clarity</button>
-        </form>
+            <div class="container" style="max-width: 600px; margin: 0 20px 0 0;">
+                <div id="auth-section" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h1 style="margin:0; font-size: 1.5em;">Clarity Meter AI</h1>
+                    <div>
+                        <span id="user-name" style="font-weight: bold; margin-right: 10px;"></span>
+                        <button id="logoutBtn" style="padding: 5px 10px; font-size: 0.8em;">Logout</button>
+                    </div>
+                </div>
+                
+                <form id="clarityForm">
+                    <label>Meeting Topic/Goal:</label>
+                    <textarea id="topicInput" rows="2" placeholder="e.g., Finalize launch plan..."></textarea>
+                    
+                    <label>Shared Understanding:</label>
+                    <textarea id="understandingInput" rows="4" placeholder="e.g., We know the feature is built..."></textarea>
+                    
+                    <button type="submit">Check Clarity</button>
+                </form>
 
-        <div id="result" class="result-box">
-            Fill out the form and click 'Check Clarity'.
+                <div id="result" class="result-box" style="margin-top: 20px;">
+                    Run a check to see results here.
+                </div>
+            </div>
+
+            <div class="history-container" style="max-width: 300px; width: 100%; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); height: fit-content;">
+                <h3 style="margin-top: 0;">My History</h3>
+                <button id="refreshBtn" style="width: 100%; margin-bottom: 10px; background: #eee; color: #333;">Refresh List</button>
+                <div id="goals-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 600px; overflow-y: auto;">
+                    <p style="color: #888; font-size: 0.9em;">Loading...</p>
+                </div>
+            </div>
+
         </div>
-    </div>
 
-    <script src="script.js"></script>
-</body>
+        <script type="module" src="script.js"></script>
+    </body>
 </html>
