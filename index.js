@@ -16,7 +16,7 @@ admin.initializeApp();
 const db = getFirestore();
 // ... rest of your code ...
 //Initialize Gemini API
-const ai = new GoogleGenAI({apiKey: process.env.GEMINI_API_KEY}); 
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const model = 'gemini-2.5-flash';
 
 // --- Add after your Gemini model declaration (around line 9) ---
@@ -48,7 +48,7 @@ Follow these steps:
 
 Input:
 MEETING TOPIC: 
-`; 
+`;
 // We intentionally end the template literal here. The user's input will be appended 
 // to this prompt string later in the POST handler (Phase 2).
 
@@ -57,7 +57,7 @@ MEETING TOPIC:
 // --- Start of Implementation for Step 4 ---
 
 // Define the port Cloud Run will use (it's always the PORT environment variable)
-const port = process.env.PORT || 8080; 
+const port = process.env.PORT || 8080;
 
 // Initializes the Express server
 
@@ -76,156 +76,154 @@ const port = process.env.PORT || 8080;
 app.post('/clarity-check', async (req, res) => {
     // Extract 'topic' and 'understanding' from the user's JSON request body
     const { topic, understanding } = req.body;
-  
+
     if (!topic || !understanding) {
-      // Return a 400 error if the user didn't send all required data
-      return res.status(400).json({ 
-          error: 'Error: Must provide both "topic" and "understanding" in the request body.' 
-      });
+        // Return a 400 error if the user didn't send all required data
+        return res.status(400).json({
+            error: 'Error: Must provide both "topic" and "understanding" in the request body.'
+        });
     }
-  
+
     try {
-      // Construct the final, complete prompt by appending the user's data 
-      // to the BASE_PROMPT instructions (Phase 1, Step 3.4)
-      const fullPrompt = BASE_PROMPT + `
+        // Construct the final, complete prompt by appending the user's data 
+        // to the BASE_PROMPT instructions (Phase 1, Step 3.4)
+        const fullPrompt = BASE_PROMPT + `
         ${topic}
         CURRENT SHARED UNDERSTANDING: ${understanding}
       `;
-      
-      // Call the Gemini model using the secure 'ai' client
-      const response = await ai.models.generateContent({
-          model: model, // 'gemini-2.5-flash'
-          contents: fullPrompt,
-          config: {
-            // Re-enforce the JSON output requirement for the API call
-            responseMimeType: "application/json",
-          },
-      });
-  
-      // Step 6: Handle Output - Parse the JSON string received from the AI
-      const clarityResult = JSON.parse(response.text.trim());
-      
-      // Send the structured JSON analysis back to the user
-      res.json(clarityResult);
-      
+
+        // Call the Gemini model using the secure 'ai' client
+        const response = await ai.models.generateContent({
+            model: model, // 'gemini-2.5-flash'
+            contents: fullPrompt,
+            config: {
+                // Re-enforce the JSON output requirement for the API call
+                responseMimeType: "application/json",
+            },
+        });
+
+        // Step 6: Handle Output - Parse the JSON string received from the AI
+        const clarityResult = JSON.parse(response.text.trim());
+
+        // Send the structured JSON analysis back to the user
+        res.json(clarityResult);
+
     } catch (error) {
-      console.error('AI Generation Error:', error);
-      // Send a generic 500 server error if the AI call fails or the JSON parsing fails
-      res.status(500).json({ error: 'An unexpected error occurred during clarity analysis.' });
+        console.error('AI Generation Error:', error);
+        // Send a generic 500 server error if the AI call fails or the JSON parsing fails
+        res.status(500).json({ error: 'An unexpected error occurred during clarity analysis.' });
     }
-  });
-  
-  // --- End of Implementation for Step 5 ---
+});
+
+// --- End of Implementation for Step 5 ---
 // // --- Start of Implementation for Step 7 (FINAL FIX) ---
 // --- Step 3: New Endpoint to Save Goals to Database ---
+// Line 120: // --- Step 3: New Endpoint to Save Goals to Database ---
+
+// START PASTING HERE (Line 121)
 app.post('/api/goals', async (req, res) => {
-  // 1. Get data from the user's request
-  const goalData = req.body; 
-  
-  // 2. Simple Validation: Make sure they sent a title and timeframe
-  if (!goalData.title || !goalData.timeframe) {
-      return res.status(400).json({ error: 'Missing goal title or timeframe.' });
-  }
+    // 1. Get data from the user's request
+    const goalData = req.body;
 
-  try {
-      // 3. Save to Firestore
-      // We tell the 'db' to go to the 'goals' collection and 'add' a new document
-      const docRef = await db.collection('goals').add({
-          title: goalData.title,
-          timeframe: goalData.timeframe,
-          // We add a timestamp so we know when this happened
-          createdAt: admin.firestore.Timestamp.now()
-      });
+    // 2. Simple Validation
+    if (!goalData.title || !goalData.timeframe) {
+        return res.status(400).json({ error: 'Missing goal title or timeframe.' });
+    }
 
-      // 4. Send Success Response
-      res.status(201).json({ 
-          message: 'Goal saved successfully to Firestore.',
-          id: docRef.id 
-      });
+    try {
+        // 3. Save to Firestore
+        const docRef = await db.collection('goals').add({
+            title: goalData.title,
+            timeframe: goalData.timeframe,
+            createdAt: admin.firestore.Timestamp.now()
+        });
 
-  } catch (error) {
-      console.error('Firestore Error:', error);
-      res.status(500).json({ error: 'Failed to save goal to database.' });
-  }
+        // 4. Send Success Response
+        res.status(201).json({
+            message: 'Goal saved successfully to Firestore.',
+            id: docRef.id
+        });
+
+    } catch (error) {
+        console.error('Firestore Error:', error);
+        res.status(500).json({ error: 'Failed to save goal to database.' });
+    }
 });
+// STOP PASTING HERE
 
 // --- Step 3b: New Endpoint to GET User Goals ---
 app.get('/api/goals', async (req, res) => {
-  const userEmail = req.query.user; // We will send ?user=email@test.com
+    const userEmail = req.query.user; // We will send ?user=email@test.com
 
-  if (!userEmail) {
-      return res.status(400).json({ error: 'Missing user email parameter.' });
-  }
+    if (!userEmail) {
+        return res.status(400).json({ error: 'Missing user email parameter.' });
+    }
 
-  try {
-      // Query Firestore: Give me goals where 'user' matches the requester
-      const snapshot = await db.collection('goals')
-          .where('user', '==', userEmail)
-          .orderBy('createdAt', 'desc') // Newest first
-          .limit(20)
-          .get();
+    try {
+        // Query Firestore: Give me goals where 'user' matches the requester
+        const snapshot = await db.collection('goals')
+            .where('user', '==', userEmail)
+            .orderBy('createdAt', 'desc') // Newest first
+            .limit(20)
+            .get();
 
-      if (snapshot.empty) {
-          return res.json([]); // Return empty list if no goals found
-      }
+        if (snapshot.empty) {
+            return res.json([]); // Return empty list if no goals found
+        }
 
-      // Convert snapshot to a simple array of data
-      const goals = [];
-      snapshot.forEach(doc => {
-          goals.push({ id: doc.id, ...doc.data() });
-      });
+        // Convert snapshot to a simple array of data
+        const goals = [];
+        snapshot.forEach(doc => {
+            goals.push({ id: doc.id, ...doc.data() });
+        });
 
-      res.json(goals);
+        res.json(goals);
 
-  } catch (error) {
-      console.error('Firestore Fetch Error:', error);
-      res.status(500).json({ error: 'Failed to fetch goals.' });
-  }
+    } catch (error) {
+        console.error('Firestore Fetch Error:', error);
+        res.status(500).json({ error: 'Failed to fetch goals.' });
+    }
 });
 
 // Define the required host interface for container environments
-const HOST = '0.0.0.0'; 
+const HOST = '0.0.0.0';
 
 // Basic health check endpoint (optional but helpful for Cloud Run health checks)
 app.get('/', (req, res) => {
     res.send('<p>Clarity Meter AI is running. Send a POST request to /clarity-check.</p>');
 });
 
-// Starts the server listening on the assigned port and host
-app.listen(port, HOST, () => {
-    console.log(`Clarity Meter AI listening on port ${port} and host ${HOST}`);
-});
 
 // --- End of Implementation for Step 7 (FINAL FIX) ---
 // ----------------------------------------------------
 
 // --- Step 4: AI Report Generator Endpoint ---
 app.post('/api/generate-report', async (req, res) => {
-  const userEmail = req.body.user;
+    const userEmail = req.body.user;
 
-  if (!userEmail) return res.status(400).json({ error: 'User email required.' });
+    if (!userEmail) return res.status(400).json({ error: 'User email required.' });
 
-  try {
-      // 1. Fetch last 10 goals/checks for this user
-      const snapshot = await db.collection('goals')
-          .where('user', '==', userEmail)
-          .orderBy('createdAt', 'desc')
-          .limit(10)
-          .get();
+    try {
+        // 1. Fetch last 10 goals/checks for this user
+        const snapshot = await db.collection('goals')
+            .where('user', '==', userEmail)
+            .orderBy('createdAt', 'desc')
+            .limit(10)
+            .get();
 
-      if (snapshot.empty) {
-          return res.json({ report: "No recent activity found to analyze." });
-      }
+        if (snapshot.empty) {
+            return res.json({ report: "No recent activity found to analyze." });
+        }
 
-      // 2. Format data into a text block for the AI
-      let historyText = "RECENT TEAM ACTIVITY:\n";
-      snapshot.forEach(doc => {
-          const data = doc.data();
-          historyText += `- Goal: "${data.title}" (Timeframe: ${data.timeframe})\n`;
-      });
+        // 2. Format data into a text block for the AI
+        let historyText = "RECENT TEAM ACTIVITY:\n";
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            historyText += `- Goal: "${data.title}" (Timeframe: ${data.timeframe})\n`;
+        });
 
-      // 3. Send to Gemini
-      const prompt = `
+        // 3. Send to Gemini
+        const prompt = `
           You are an expert Project Management Assistant. 
           Analyze the following recent activity list. 
           Write a concise, professional weekly status email summary for a stakeholder.
@@ -234,16 +232,23 @@ app.post('/api/generate-report', async (req, res) => {
           ${historyText}
       `;
 
-      const result = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: prompt,
-      });
+        const result = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
 
-      const report = result.response.text();
-      res.json({ report });
+        const report = result.response.text();
+        res.json({ report });
 
-  } catch (error) {
-      console.error('Report Gen Error:', error);
-      res.status(500).json({ error: 'Failed to generate report.' });
-  }
+    } catch (error) {
+        console.error('Report Gen Error:', error);
+        res.status(500).json({ error: 'Failed to generate report.' });
+    }
+}); // <-- This is the end of the Report Route (approx Line 249)
+
+
+// --- Starts the server listening --- 
+// (This block must be the VERY LAST thing in the file)
+app.listen(port, HOST, () => {
+    console.log(`Clarity Meter AI listening on port ${port} and host ${HOST}`);
 });
