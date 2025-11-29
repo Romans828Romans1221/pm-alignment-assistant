@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a237e">
+<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1698/1698535.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clarity Meter AI</title>
@@ -27,7 +30,28 @@
                     
                     <label>Shared Understanding:</label>
                     <textarea id="understandingInput" rows="4" placeholder="e.g., We know the feature is built..."></textarea>
-                    
+                        <div style="margin-bottom: 20px;">
+                            <label for="teamInput">Team Code (Optional):</label>
+                            <input type="text" id="teamInput" placeholder="e.g. Team-Alpha-123" 
+                                style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; box-sizing: border-box;">
+                            <p style="font-size: 0.8em; color: #666; margin-top: 5px;">
+                                Enter a shared code to see your team's history.
+                            </p>
+                        </div>
+                        <div style="margin-top: 10px; text-align: right;">
+                                <button type="button" id="shareGoalBtn" style="background: transparent; border: 1px solid #666; color: #333; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9em;">
+                                  🔗 Create Team Link
+                                </button>
+                        </div>
+                        <div id="shareLinkContainer" style="display:none; margin-top:10px; background:#e3f2fd; padding:10px; border-radius:4px; font-size:0.9em; word-break: break-all;"></div>
+                        <div style="margin-bottom: 20px;">
+                            <label for="roleInput">My Role on this Team:</label>
+                              <input type="text" id="roleInput" placeholder="e.g. Project Manager, Lead Guitarist, Site Foreman" 
+                                style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; box-sizing: border-box;">
+                                <p style="font-size: 0.8em; color: #666; margin-top: 5px;">
+                                    Tell the AI your specific role so it can check if the goal applies to you.
+                                </p>
+                        </div>
                     <button type="submit">Check Clarity</button>
                 </form>
 

@@ -121,32 +121,65 @@ app.post('/clarity-check', async (req, res) => {
 // Line 120: // --- Step 3: New Endpoint to Save Goals to Database ---
 
 // START PASTING HERE (Line 121)
+// --- Step 3 & Goal 3: Smart Goal Save (With Role Guardrail) ---
 app.post('/api/goals', async (req, res) => {
-    // 1. Get data from the user's request
-    const goalData = req.body;
+    const { title, timeframe, user, teamId, role } = req.body;
 
-    // 2. Simple Validation
-    if (!goalData.title || !goalData.timeframe) {
-        return res.status(400).json({ error: 'Missing goal title or timeframe.' });
-    }
+    if (!title || !timeframe) return res.status(400).json({ error: 'Missing fields.' });
 
     try {
+        // 1. THE AI GUARDRAIL CHECK
+        // We ask Gemini if this goal matches the role
+        // 1. THE AI GUARDRAIL CHECK (Universal Version)
+        const guardrailPrompt = `
+            You are an expert in team management and organizational alignment across all industries (Construction, Tech, Non-Profit, etc.).
+            
+            Context:
+            - Role: "${role}"
+            - Stated Goal: "${title}"
+            
+            Task: Analyze if this goal is appropriate for this specific role. 
+            - If the goal is generic (e.g. "Attend meeting"), it fits everyone.
+            - If the goal is technical/specific, does it match the role? (e.g. A "Drummer" shouldn't be "fixing the HVAC").
+            
+            Output:
+            - If it fits: Return "APPROVED".
+            - If it is a mismatch: Return "WARNING: " followed by a 1 sentence explanation of why this role shouldn't likely have this goal.
+        `;
+
+        const aiCheck = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: guardrailPrompt,
+        });
+
+        const verdict = aiCheck.response.text().trim();
+
+        // 2. If it's a mismatch, we can flag it (Optional: Stop the save)
+        // For now, we will save it but add the warning tag.
+        const isWarning = verdict.startsWith("WARNING");
+
         // 3. Save to Firestore
         const docRef = await db.collection('goals').add({
-            title: goalData.title,
-            timeframe: goalData.timeframe,
+            title, 
+            timeframe, 
+            user,
+            teamId: teamId || null,
+            role: role || "Unspecified",
+            guardrailVerdict: verdict, // Save the AI's opinion!
+            isRisky: isWarning,
             createdAt: admin.firestore.Timestamp.now()
         });
 
-        // 4. Send Success Response
-        res.status(201).json({
-            message: 'Goal saved successfully to Firestore.',
-            id: docRef.id
+        // 4. Send success (with the warning if needed)
+        res.status(201).json({ 
+            message: 'Goal saved.',
+            id: docRef.id,
+            warning: isWarning ? verdict : null 
         });
 
     } catch (error) {
         console.error('Firestore Error:', error);
-        res.status(500).json({ error: 'Failed to save goal to database.' });
+        res.status(500).json({ error: 'Failed to save goal.' });
     }
 });
 // STOP PASTING HERE
@@ -184,6 +217,40 @@ app.get('/api/goals', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch goals.' });
     }
 });
+
+// --- Step 3: New Endpoint to GET Team Goals ---
+app.get('/api/team-goals', async (req, res) => {
+    const teamId = req.query.team; // Gets ?team=Team-Alpha
+
+    if (!teamId) {
+        return res.status(400).json({ error: 'Missing team parameter.' });
+    }
+
+    try {
+        // Query Firestore: Find goals where 'teamId' matches
+        const snapshot = await db.collection('goals')
+            .where('teamId', '==', teamId)
+            .orderBy('createdAt', 'desc')
+            .limit(20)
+            .get();
+
+        if (snapshot.empty) {
+            return res.json([]); 
+        }
+
+        const goals = [];
+        snapshot.forEach(doc => {
+            goals.push({ id: doc.id, ...doc.data() });
+        });
+
+        res.json(goals);
+
+    } catch (error) {
+        console.error('Team Fetch Error:', error);
+        res.status(500).json({ error: 'Failed to fetch team goals.' });
+    }
+});
+
 
 // Define the required host interface for container environments
 const HOST = '0.0.0.0';
