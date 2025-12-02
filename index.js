@@ -184,37 +184,45 @@ app.post('/api/goals', async (req, res) => {
 });
 // STOP PASTING HERE
 
-// --- Step 3b: New Endpoint to GET User Goals ---
+// --- SAFE GET GOALS ROUTE ---
 app.get('/api/goals', async (req, res) => {
-    const userEmail = req.query.user; // We will send ?user=email@test.com
+    const userEmail = req.query.user;
+    console.log(`Fetching goals for user: ${userEmail}`); // LOGGING
 
     if (!userEmail) {
+        console.error("Missing user email");
         return res.status(400).json({ error: 'Missing user email parameter.' });
     }
 
     try {
-        // Query Firestore: Give me goals where 'user' matches the requester
         const snapshot = await db.collection('goals')
             .where('user', '==', userEmail)
-            .orderBy('createdAt', 'desc') // Newest first
+            .orderBy('createdAt', 'desc')
             .limit(20)
             .get();
 
         if (snapshot.empty) {
-            return res.json([]); // Return empty list if no goals found
+            console.log("No goals found for user.");
+            return res.json([]); 
         }
 
-        // Convert snapshot to a simple array of data
         const goals = [];
         snapshot.forEach(doc => {
             goals.push({ id: doc.id, ...doc.data() });
         });
 
+        console.log(`Successfully fetched ${goals.length} goals.`);
         res.json(goals);
 
     } catch (error) {
-        console.error('Firestore Fetch Error:', error);
-        res.status(500).json({ error: 'Failed to fetch goals.' });
+        console.error('FULL FIRESTORE ERROR:', error); // CRITICAL: Log the full error object
+        
+        // If the error is about indexes, send that specific message
+        if (error.message.includes("indexes")) {
+             return res.status(500).json({ error: "Missing Firestore Index. Check logs for link." });
+        }
+        
+        res.status(500).json({ error: 'Failed to fetch goals. See server logs.' });
     }
 });
 
