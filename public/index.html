@@ -1,80 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1a237e">
-<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1698/1698535.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clarity Meter AI</title>
+    <title>Home - Clarity PM</title>
     <link rel="stylesheet" href="styles.css">
-    <script async src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.1/three.min.js"></script>
 </head>
-    <body>
-        <canvas id="bg-canvas"></canvas> 
 
-        <div class="main-wrapper" style="display: flex; justify-content: center; padding: 40px 20px;">
-            
-            <div class="container" style="max-width: 600px; margin: 0 20px 0 0;">
-                <div id="auth-section" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h1 style="margin:0; font-size: 1.5em;">Clarity Meter AI</h1>
-                    <div>
-                        <span id="user-name" style="font-weight: bold; margin-right: 10px;"></span>
-                        <button id="logoutBtn" style="padding: 5px 10px; font-size: 0.8em;">Logout</button>
-                    </div>
-                </div>
-                
-                <form id="clarityForm">
-                    <label>Meeting Topic/Goal:</label>
-                    <textarea id="topicInput" rows="2" placeholder="e.g., Finalize launch plan..."></textarea>
-                    
-                    <label>Shared Understanding:</label>
-                    <textarea id="understandingInput" rows="4" placeholder="e.g., We know the feature is built..."></textarea>
-                        <div style="margin-bottom: 20px;">
-                            <label for="teamInput">Team Code (Optional):</label>
-                            <input type="text" id="teamInput" placeholder="e.g. Team-Alpha-123" 
-                                style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; box-sizing: border-box;">
-                            <p style="font-size: 0.8em; color: #666; margin-top: 5px;">
-                                Enter a shared code to see your team's history.
-                            </p>
-                        </div>
-                        <div style="margin-top: 10px; text-align: right;">
-                                <button type="button" id="shareGoalBtn" style="background: transparent; border: 1px solid #666; color: #333; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9em;">
-                                  🔗 Create Team Link
-                                </button>
-                        </div>
-                        <div id="shareLinkContainer" style="display:none; margin-top:10px; background:#e3f2fd; padding:10px; border-radius:4px; font-size:0.9em; word-break: break-all;"></div>
-                        <div style="margin-bottom: 20px;">
-                            <label for="roleInput">My Role on this Team:</label>
-                              <input type="text" id="roleInput" placeholder="e.g. Project Manager, Lead Guitarist, Site Foreman" 
-                                style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; box-sizing: border-box;">
-                                <p style="font-size: 0.8em; color: #666; margin-top: 5px;">
-                                    Tell the AI your specific role so it can check if the goal applies to you.
-                                </p>
-                        </div>
-                    <button type="submit">Check Clarity</button>
-                </form>
+<body>
+    <canvas id="bg-canvas"></canvas>
 
-                <div id="result" class="result-box" style="margin-top: 20px;">
-                    Run a check to see results here.
-                </div>
-            </div>
-            <div style="margin-bottom: 20px; text-align: right;">
-                <button id="generateReportBtn" style="background-color: #673AB7; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(103, 58, 183, 0.3);">
-                    ✨ Generate AI Status Report
-                </button>
-            </div>
-            <div id="report-output" style="display: none; background: #fff; padding: 25px; border-radius: 12px; border: 1px solid #e0e0e0; margin-bottom: 30px; white-space: pre-wrap; line-height: 1.6; box-shadow: 0 4px 15px rgba(0,0,0,0.05);"></div>
-            <div class="history-container" style="max-width: 300px; width: 100%; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); height: fit-content;">
-                <h3 style="margin-top: 0;">My History</h3>
-                <button id="refreshBtn" style="width: 100%; margin-bottom: 10px; background: #eee; color: #333;">Refresh List</button>
-                <div id="goals-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 600px; overflow-y: auto;">
-                    <p style="color: #888; font-size: 0.9em;">Loading...</p>
-                </div>
-            </div>
-
+    <div class="container"
+        style="max-width: 500px; text-align: center; margin-top: 10vh; position: relative; z-index: 2;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+            <div style="font-weight: bold; color: #555;" id="user-name">Loading...</div>
+            <button id="logoutBtn" style="padding: 5px 10px; font-size: 0.8em; background: #f44336;">Logout</button>
         </div>
 
-        <script type="module" src="script.js"></script>
-    </body>
+        <h1 style="font-size: 2.5em; color: #1a237e; margin-bottom: 10px;">Clarity PM</h1>
+        <p style="color: #666; margin-bottom: 40px;">Select your mode to begin.</p>
+
+        <a href="leader.html" style="text-decoration: none;">
+            <div class="card-btn"
+                style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; transition: transform 0.2s; border-left: 5px solid #1565c0;">
+                <h2 style="margin: 0; color: #673AB7;">👑 Project Leader</h2>
+                <p style="margin: 5px 0 0; color: #888; font-size: 0.9em;">Create goals, invite team, view reports.</p>
+            </div>
+        </a>
+
+        <a href="member.html" style="text-decoration: none;">
+            <div class="card-btn"
+                style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: transform 0.2s; border-left: 5px solid #2e7d32;">
+                <h2 style="margin: 0; color: #2e7d32;">👷 Team Member</h2>
+                <p style="margin: 5px 0 0; color: #888; font-size: 0.9em;">Check your understanding & alignment.</p>
+            </div>
+        </a>
+
+    </div>
+
+    <style>
+        .card-btn:hover {
+            transform: translateY(-3px);
+            border-color: #4285F4 !important;
+            box-shadow: 0 8px 25px rgba(66, 133, 244, 0.15) !important;
+        }
+    </style>
+
+    <script type="module" src="script.js"></script>
+</body>
+
 </html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leader Dashboard - Clarity PM</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="main-wrapper">
+        <div class="container">
+            <div id="auth-section"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1>🚀 Leader Control Center</h1>
+                <button id="logoutBtn">Logout</button>
+            </div>
+
+            <h3>1. Define the Mission</h3>
+            <label>Core Goal / Meeting Topic:</label>
+            <input type="text" id="topicInput" placeholder="e.g. Launch v2 Website"
+                style="width:100%; padding:10px; margin-bottom:15px;">
+
+            <label>Detailed Breakdown / Context:</label>
+            <textarea id="contextInput" rows="4"
+                placeholder="Explain the details: timeline, key requirements, specific constraints..."></textarea>
+
+            <label>Team Code:</label>
+            <input type="text" id="teamInput" placeholder="e.g. Alpha-Squad" style="width:100%; padding:10px;">
+
+            <div style="margin-top: 20px; padding: 20px; background: #e3f2fd; border-radius: 8px;">
+                <h3>2. Invite Team</h3>
+                <p style="font-size:0.9em; margin-top:0;">Send this link to your team so they can check their alignment
+                    against your goal.</p>
+                <button id="generateLinkBtn"
+                    style="background-color: #1565c0; color: white; width: 100%; padding: 10px; font-weight: bold;">
+                    🔗 Generate Member Link
+                </button>
+                <div id="shareLinkOutput" style="display:none; margin-top:10px;"></div>
+            </div>
+        </div>
+
+        <div class="history-container">
+            <h3 style="border-bottom: 2px solid #ddd; padding-bottom: 10px;">📊 Team Dashboard</h3>
+
+            <div style="display:flex; gap:5px; margin-bottom:15px;">
+                <button id="refreshBtn" style="flex:1; background:#607d8b; color:white;">🔄 Refresh</button>
+                <button id="generateReportBtn" style="flex:1; background:#673AB7; color:white;">✨ AI Report</button>
+            </div>
+
+            <div id="report-output"
+                style="display: none; background: #f3f0ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9em;">
+            </div>
+
+            <div id="goals-list" style="margin-top: 20px;">
+                <p style="color:#666;">Enter a Team Code on the left and click 'Refresh' to see results.</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+    <script>
+        // Simple redirect if hitting root
+        if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+            // Optional: You can decide if / goes to login or member page later
+        }
+    </script>
+</body>
+
+</html>

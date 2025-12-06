@@ -74,8 +74,8 @@ const port = process.env.PORT || 8080;
 // --- Start of Implementation for Step 5 ---
 
 app.post('/clarity-check', async (req, res) => {
-    // Extract 'topic' and 'understanding' from the user's JSON request body
-    const { topic, understanding } = req.body;
+    // Extract 'topic', 'understanding', and 'context' from the user's JSON request body
+    const { topic, understanding, context } = req.body;
 
     if (!topic || !understanding) {
         // Return a 400 error if the user didn't send all required data
@@ -88,8 +88,10 @@ app.post('/clarity-check', async (req, res) => {
         // Construct the final, complete prompt by appending the user's data 
         // to the BASE_PROMPT instructions (Phase 1, Step 3.4)
         const fullPrompt = BASE_PROMPT + `
-        ${topic}
-        CURRENT SHARED UNDERSTANDING: ${understanding}
+        MEETING TOPIC/GOAL: ${topic}
+        ADDITIONAL CONTEXT/BREAKDOWN: ${context || "N/A"}
+
+        CURRENT SHARED UNDERSTANDING (Member's Input): ${understanding}
       `;
 
         // Call the Gemini model using the secure 'ai' client
@@ -122,59 +124,30 @@ app.post('/clarity-check', async (req, res) => {
 
 // START PASTING HERE (Line 121)
 // --- Step 3 & Goal 3: Smart Goal Save (With Role Guardrail) ---
+// --- Step 3 & Goal 3: Save Goal + Clarity Results ---
 app.post('/api/goals', async (req, res) => {
-    const { title, timeframe, user, teamId, role } = req.body;
+    // We now accept 'understanding', 'score', and 'verdict' too!
+    const { title, timeframe, user, teamId, role, understanding, score, verdict } = req.body;
 
-    if (!title || !timeframe) return res.status(400).json({ error: 'Missing fields.' });
+    if (!title) return res.status(400).json({ error: 'Missing goal title.' });
 
     try {
-        // 1. THE AI GUARDRAIL CHECK
-        // We ask Gemini if this goal matches the role
-        // 1. THE AI GUARDRAIL CHECK (Universal Version)
-        const guardrailPrompt = `
-            You are an expert in team management and organizational alignment across all industries (Construction, Tech, Non-Profit, etc.).
-            
-            Context:
-            - Role: "${role}"
-            - Stated Goal: "${title}"
-            
-            Task: Analyze if this goal is appropriate for this specific role. 
-            - If the goal is generic (e.g. "Attend meeting"), it fits everyone.
-            - If the goal is technical/specific, does it match the role? (e.g. A "Drummer" shouldn't be "fixing the HVAC").
-            
-            Output:
-            - If it fits: Return "APPROVED".
-            - If it is a mismatch: Return "WARNING: " followed by a 1 sentence explanation of why this role shouldn't likely have this goal.
-        `;
-
-        const aiCheck = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: guardrailPrompt,
-        });
-
-        const verdict = aiCheck.response.text().trim();
-
-        // 2. If it's a mismatch, we can flag it (Optional: Stop the save)
-        // For now, we will save it but add the warning tag.
-        const isWarning = verdict.startsWith("WARNING");
-
-        // 3. Save to Firestore
+        // Save everything to Firestore
         const docRef = await db.collection('goals').add({
-            title, 
-            timeframe, 
+            title,
+            timeframe: timeframe || "Instant Check",
             user,
             teamId: teamId || null,
             role: role || "Unspecified",
-            guardrailVerdict: verdict, // Save the AI's opinion!
-            isRisky: isWarning,
+            understanding: understanding || "", // Save what they typed
+            clarityScore: score || 0,           // Save the AI score
+            verdict: verdict || "Pending",      // Save the AI verdict
             createdAt: admin.firestore.Timestamp.now()
         });
 
-        // 4. Send success (with the warning if needed)
-        res.status(201).json({ 
-            message: 'Goal saved.',
-            id: docRef.id,
-            warning: isWarning ? verdict : null 
+        res.status(201).json({
+            message: 'Goal and results saved.',
+            id: docRef.id
         });
 
     } catch (error) {
@@ -203,7 +176,7 @@ app.get('/api/goals', async (req, res) => {
 
         if (snapshot.empty) {
             console.log("No goals found for user.");
-            return res.json([]); 
+            return res.json([]);
         }
 
         const goals = [];
@@ -216,12 +189,12 @@ app.get('/api/goals', async (req, res) => {
 
     } catch (error) {
         console.error('FULL FIRESTORE ERROR:', error); // CRITICAL: Log the full error object
-        
+
         // If the error is about indexes, send that specific message
         if (error.message.includes("indexes")) {
-             return res.status(500).json({ error: "Missing Firestore Index. Check logs for link." });
+            return res.status(500).json({ error: "Missing Firestore Index. Check logs for link." });
         }
-        
+
         res.status(500).json({ error: 'Failed to fetch goals. See server logs.' });
     }
 });
@@ -243,7 +216,7 @@ app.get('/api/team-goals', async (req, res) => {
             .get();
 
         if (snapshot.empty) {
-            return res.json([]); 
+            return res.json([]);
         }
 
         const goals = [];
@@ -272,54 +245,73 @@ app.get('/', (req, res) => {
 // --- End of Implementation for Step 7 (FINAL FIX) ---
 // ----------------------------------------------------
 
-// --- Step 4: AI Report Generator Endpoint ---
-app.post('/api/generate-report', async (req, res) => {
-    const userEmail = req.body.user;
 
-    if (!userEmail) return res.status(400).json({ error: 'User email required.' });
+// --- Step 4: Smart AI Report (User OR Team) ---
+app.post('/api/generate-report', async (req, res) => {
+    const { user, teamId } = req.body; // Now we accept teamId too
 
     try {
-        // 1. Fetch last 10 goals/checks for this user
-        const snapshot = await db.collection('goals')
-            .where('user', '==', userEmail)
-            .orderBy('createdAt', 'desc')
-            .limit(10)
-            .get();
+        let snapshot;
+        let contextMsg = "";
+
+        // 1. Decide: Are we analyzing a Team or a Person?
+        if (teamId) {
+            console.log(`Generating report for Team: ${teamId}`);
+            contextMsg = `TEAM REPORT (${teamId})`;
+            snapshot = await db.collection('goals')
+                .where('teamId', '==', teamId)
+                .orderBy('createdAt', 'desc')
+                .limit(15) // Look at last 15 team updates
+                .get();
+        } else {
+            console.log(`Generating report for User: ${user}`);
+            contextMsg = "INDIVIDUAL REPORT";
+            snapshot = await db.collection('goals')
+                .where('user', '==', user)
+                .orderBy('createdAt', 'desc')
+                .limit(10)
+                .get();
+        }
 
         if (snapshot.empty) {
             return res.json({ report: "No recent activity found to analyze." });
         }
 
-        // 2. Format data into a text block for the AI
-        let historyText = "RECENT TEAM ACTIVITY:\n";
+        // 2. Format data for the AI (Include Who and What)
+        let historyText = `${contextMsg} ACTIVITY:\n`;
         snapshot.forEach(doc => {
             const data = doc.data();
-            historyText += `- Goal: "${data.title}" (Timeframe: ${data.timeframe})\n`;
+            // We include the User's email so the AI knows WHO said WHAT
+            historyText += `- [${data.user}] Goal: "${data.title}" | Role: "${data.role}" | Understanding: "${data.understanding || 'N/A'}" | Verdict: ${data.verdict}\n`;
         });
 
-        // 3. Send to Gemini
+        // 3. Send to Gemini (Updated Prompt)
         const prompt = `
-          You are an expert Project Management Assistant. 
-          Analyze the following recent activity list. 
-          Write a concise, professional weekly status email summary for a stakeholder.
-          Highlight progress and any potential risks implied by the goals.
-          
-          ${historyText}
-      `;
+            You are an expert Project Management Assistant. 
+            Analyze the following list of team inputs.
+            
+            Your Goal: Write a status summary for the Team Leader.
+            
+            1. Identify alignment: Does everyone understand the goal?
+            2. Call out risks: Did specific members (list them by email/role) misunderstand their task?
+            3. Verdict: Is the team ready to start?
+            
+            DATA:
+            ${historyText}
+        `;
 
         const result = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
         });
 
-        const report = result.response.text();
-        res.json({ report });
+        res.json({ report: result.response.text() });
 
     } catch (error) {
         console.error('Report Gen Error:', error);
         res.status(500).json({ error: 'Failed to generate report.' });
     }
-}); // <-- This is the end of the Report Route (approx Line 249)
+});// <-- This is the end of the Report Route (approx Line 249)
 
 
 // --- Starts the server listening --- 

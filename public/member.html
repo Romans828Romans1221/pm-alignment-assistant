@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Member Check - Clarity PM</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container" style="max-width: 700px; margin: 40px auto;">
+        <div id="auth-section" style="text-align: right; margin-bottom:10px;">
+            <span id="user-name" style="margin-right: 10px; font-weight: bold; color: #555;"></span>
+            <button id="logoutBtn">Logout</button>
+        </div>
+
+        <div style="text-align:center; margin-bottom:20px;">
+            <h1 style="margin-bottom: 5px;">✅ Team Alignment Check</h1>
+            <h3 style="color:#00796b; margin-top:0;">Team: <span id="displayTeam">Loading...</span></h3>
+        </div>
+
+        <div
+            style="background: #f1f8e9; padding: 25px; border-radius: 8px; border-left: 5px solid #33691e; margin-bottom: 30px;">
+            <label style="margin-top:0; color:#1b5e20;">🚀 TEAM GOAL:</label>
+            <p id="displayTopic" style="font-weight: bold; font-size: 1.2em; margin-top: 5px;">Loading...</p>
+
+            <label style="color:#1b5e20;">CONTEXT & DETAILS:</label>
+            <p id="displayContext" style="white-space: pre-wrap; color: #333; font-size: 0.95em;">Loading...</p>
+        </div>
+
+        <form id="clarityForm">
+            <input type="hidden" id="topicInput">
+            <input type="hidden" id="contextInput">
+            <input type="hidden" id="teamInput">
+
+            <label>My Role:</label>
+            <input type="text" id="roleInput" placeholder="e.g. Senior Dev, Designer" required
+                style="width:100%; padding:10px;">
+
+            <label>My Understanding & Plan:</label>
+            <textarea id="understandingInput" rows="5"
+                placeholder="Describe how you will achieve this goal in your role..." required></textarea>
+
+            <button type="submit" style="background-color: #2e7d32; margin-top:20px;">Submit Clarity Check</button>
+        </form>
+
+        <div id="result" class="result-box"></div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+
+</html>
