@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leader Control Center</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            padding-top: 50px;
+        }
+
+        .container {
+            width: 600px;
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #fff;
+        }
+
+        .card {
+            background-color: #252526;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            background-color: #333;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #6200ea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #7b1fa2;
+        }
+
+        #resultArea {
+            margin-top: 20px;
+        }
+
+        .error {
+            color: #ff5252;
+            margin-top: 10px;
+        }
+
+        /* Plan Table Styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #444;
+        }
+
+        th {
+            color: #aaa;
+            font-size: 0.85em;
+            text-transform: uppercase;
+        }
+
+        td {
+            color: #ddd;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>🚀 Leader Control Center</h1>
+
+        <div class="card">
+            <h3>🤖 AI Task Architect</h3>
+            <p style="color: #888; font-size: 0.9em;">Define a goal, and Gemini will build your plan.</p>
+
+            <label>PROJECT GOAL</label>
+            <textarea id="projectGoal" rows="3" placeholder="e.g. Launch a new iOS marketing website"></textarea>
+
+            <label>AVAILABLE ROLES</label>
+            <input type="text" id="teamRoles" placeholder="e.g. Designer, Developer, Copywriter">
+
+            <button onclick="generatePlan()">Generate Plan</button>
+
+            <div id="loading" style="display:none; text-align:center; margin-top:15px; color:#aaa;">
+                Creating plan...
+            </div>
+            <div id="errorMsg" class="error"></div>
+        </div>
+
+        <div id="resultArea"></div>
+    </div>
+
+    <script>
+        async function generatePlan() {
+            const goal = document.getElementById('projectGoal').value;
+            const roles = document.getElementById('teamRoles').value;
+            const btn = document.querySelector('button');
+            const loading = document.getElementById('loading');
+            const errorMsg = document.getElementById('errorMsg');
+            const resultArea = document.getElementById('resultArea');
+
+            // Reset UI
+            errorMsg.textContent = '';
+            resultArea.innerHTML = '';
+            btn.disabled = true;
+            btn.style.opacity = "0.5";
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/generate-plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ projectGoal: goal, teamRoles: roles })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    renderTable(data.plan);
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+
+            } catch (err) {
+                console.error(err);
+                errorMsg.textContent = 'AI Failed: ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.style.opacity = "1";
+                loading.style.display = 'none';
+            }
+        }
+
+        function renderTable(plan) {
+            let html = `<h3>${plan.projectName}</h3><table>
+            <thead><tr><th>Step</th><th>Task</th><th>Role</th><th>Hours</th></tr></thead>
+            <tbody>`;
+
+            plan.tasks.forEach(task => {
+                html += `<tr>
+                <td>${task.step}</td>
+                <td><strong>${task.title}</strong><br><span style="font-size:0.8em; color:#888;">${task.description}</span></td>
+                <td>${task.role}</td>
+                <td>${task.estimateHours}h</td>
+            </tr>`;
+            });
+
+            html += `</tbody></table>`;
+            document.getElementById('resultArea').innerHTML = html;
+        }
+    </script>
+
+</body>
+
+</html>

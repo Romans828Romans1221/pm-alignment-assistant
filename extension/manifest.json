@@ -1,0 +1,20 @@
+{
+    "manifest_version": 3,
+    "name": "Clarity Check: Meeting Auditor",
+    "version": "1.0",
+    "description": "AI-powered assistant to determine if a meeting is actually necessary.",
+    "side_panel": {
+        "default_path": "panel.html"
+    },
+    "permissions": [
+        "sidePanel"
+    ],
+    "host_permissions": [
+        "https://clarity-pm-assistant-132738195526.us-central1.run.app/*"
+    ],
+    "icons": {
+        "16": "icon-16.png",
+        "48": "icon-48.png",
+        "128": "icon-128.png"
+    }
+}
