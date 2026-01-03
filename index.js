@@ -1,6 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { VertexAI } = require('@google-cloud/vertexai');
+// 1. IMPORT THE DEVELOPER LIBRARY
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const admin = require('firebase-admin');
 const { getFirestore } = require('firebase-admin/firestore');
 const path = require('path');
@@ -8,168 +10,107 @@ const path = require('path');
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-// 1. SERVE REACT APP
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // 2. DATABASE SETUP
-admin.initializeApp();
+try {
+    admin.initializeApp();
+} catch (e) {
+    // Ignore if already initialized
+}
 const db = getFirestore();
 
-// 3. AI CONFIGURATION
-// We use the stable alias 'gemini-1.5-flash' to avoid version 404 errors.
-const PROJECT_ID = 'clarity-pm-assistant-gcp';
-const LOCATION = 'us-central1';
-const MODEL_NAME = 'gemini-1.5-flash';
+// 3. AI CONFIGURATION (Real AI Restored)
+const API_KEY = process.env.GEMINI_API_KEY;
+
+if (!API_KEY) {
+    console.warn("⚠️ WARNING: GEMINI_API_KEY is missing from .env file!");
+}
+
+const genAI = new GoogleGenerativeAI(API_KEY || "MISSING_KEY");
+// using the verified working alias
+const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
 // --- API ROUTES ---
 
-// A. GENERATE PLAN (The "Fail-Safe" Version)
-app.post('/api/generate-plan', async (req, res) => {
-    const { projectGoal, teamRoles, teamCode } = req.body;
-    let aiPlan = null;
-
-    // 🛡️ SANITIZATION FIX: Remove invisible spaces immediately
-    const cleanCode = teamCode ? teamCode.trim() : null;
-
-    try {
-        console.log(`[1/3] Saving Goal for Team: '${cleanCode}'`);
-
-        // ---------------------------------------------------------
-        // STEP 1: SAVE TO DATABASE (CRITICAL PATH)
-        // This runs FIRST. Even if AI fails later, the Link will work.
-        // ---------------------------------------------------------
-        if (cleanCode) {
-            await db.collection('goals').add({
-                teamCode: cleanCode, // <--- Saves "Charlie" (no space)
-                goal: projectGoal,
-                context: teamRoles || "No additional context provided.",
-                timestamp: admin.firestore.FieldValue.serverTimestamp()
-            });
-            console.log("✅ Goal saved to database successfully.");
-        }
-
-        // ---------------------------------------------------------
-        // STEP 2: ATTEMPT AI GENERATION (OPTIONAL PATH)
-        // If this fails (404, No Access, etc.), we catch the error 
-        // and continue so the user isn't blocked.
-        // ---------------------------------------------------------
-        try {
-            console.log(`[2/3] Attempting AI Generation...`);
-            const vertex_ai = new VertexAI({ project: PROJECT_ID, location: LOCATION });
-            const model = vertex_ai.preview.getGenerativeModel({ model: MODEL_NAME });
-
-            const prompt = `
-                Act as a Project Manager.
-                Goal: "${projectGoal}"
-                Context: "${teamRoles}"
-                Return JSON: { "projectName": "Short Title", "tasks": ["Task 1", "Task 2"] }
-            `;
-
-            const result = await model.generateContent(prompt);
-            let text = result.response.candidates[0].content.parts[0].text;
-            text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-            aiPlan = JSON.parse(text);
-            console.log("✅ AI Plan Generated.");
-
-        } catch (innerError) {
-            // THIS IS THE FIX: We log the error, but we do NOT crash the server.
-            console.warn("⚠️ AI Failed (Non-Fatal):", innerError.message);
-            console.warn("⚠️ Continuing process so the Member Link still works.");
-        }
-
-        // STEP 3: RETURN SUCCESS
-        // We return success because the PRIMARY job (saving the goal) is done.
-        res.json({
-            success: true,
-            plan: aiPlan,
-            message: "Goal saved!"
-        });
-
-    } catch (fatalError) {
-        console.error("❌ Fatal Database Error:", fatalError);
-        res.status(500).json({ error: "Failed to save to database." });
-    }
+app.get('/api/health', (req, res) => {
+    res.json({ status: "Online", mode: "Real AI (gemini-flash-latest)" });
 });
 
-// B. FETCH GOALS (Updated to fix "Goal Not Found")
-app.get('/api/goals', async (req, res) => {
-    try {
-        const code = req.query.code || req.query.teamCode;
-        if (!code) return res.status(400).json({ error: "No code" });
-
-        // 🛡️ TRIM THE INPUT (Just in case)
-        const cleanCode = code.trim();
-
-        // 🔍 SIMPLIFIED QUERY
-        // We removed .orderBy('timestamp', 'desc') because it requires a manual database index.
-        const snapshot = await db.collection('goals')
-            .where('teamCode', '==', cleanCode)
-            .limit(1)
-            .get();
-
-        if (snapshot.empty) {
-            console.log(`❌ Goal not found for code: '${cleanCode}'`);
-            return res.json({ success: false });
-        }
-
-        const data = snapshot.docs[0].data();
-        console.log(`✅ Goal found for: '${cleanCode}'`);
-        res.json({ success: true, goal: data.goal, context: data.context });
-
-    } catch (error) {
-        console.error("Fetch Error:", error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// C. ANALYZE ALIGNMENT (The Clarity Check)
 app.post('/api/analyze-alignment', async (req, res) => {
     try {
-        const { teamCode, role, understanding } = req.body;
+        const { teamCode, role, name, understanding } = req.body;
+        console.log(`\n📢 PROCESSING: ${name} (${role})`);
 
-        // 1. Get Leader Goal
+        // Database Fetch
         const snapshot = await db.collection('goals').where('teamCode', '==', teamCode).limit(1).get();
         if (snapshot.empty) return res.status(404).json({ error: "Goal not found" });
         const leaderGoal = snapshot.docs[0].data().goal;
 
-        // 2. Ask AI (With Fail-Safe)
-        let analysis = { score: 0, meetingType: "Error", feedback: "AI Service Unavailable" };
-
+        // AI Logic (Real)
+        let analysis = { score: 50, meetingType: "Needs Review", feedback: "AI Unavailable" };
         try {
-            const vertex_ai = new VertexAI({ project: PROJECT_ID, location: LOCATION });
-            const model = vertex_ai.preview.getGenerativeModel({ model: MODEL_NAME });
+            console.log("🧠 Calling Gemini (flash-latest)...");
 
-            const prompt = `Compare Leader Goal: "${leaderGoal}" vs Member Understanding: "${understanding}". Return JSON: { "score": 85, "meetingType": "None", "feedback": "..." }`;
+            const prompt = `
+                Leader Goal: "${leaderGoal}"
+                Member (${name}, ${role}) Understanding: "${understanding}"
+                
+                Compare them. Return strictly this JSON: 
+                { "score": (0-100), "meetingType": "None" or "1:1 Meeting", "feedback": "Short advice for leader" }
+            `;
+
             const result = await model.generateContent(prompt);
-            let text = result.response.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
+            const response = await result.response;
+            let text = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+
             analysis = JSON.parse(text);
-        } catch (aiErr) {
-            console.error("AI Analysis Failed:", aiErr);
-            // Fallback if AI fails:
+            console.log("✅ AI Success! Score:", analysis.score);
+
+        } catch (e) {
+            console.error("❌ AI Error (Falling back to safe default):", e.message);
+            // If it fails, we provide a safe fallback so the app doesn't crash
             analysis = {
-                score: 50,
-                meetingType: "Needs Review",
-                feedback: "AI could not process this request, but your response has been saved for the leader."
+                score: 55,
+                meetingType: "1:1 Meeting",
+                feedback: "AI Connection Error. Please verify understanding manually."
             };
         }
 
-        // 3. Save Result
-        await db.collection('alignments').add({ teamCode, role, understanding, analysis, timestamp: admin.firestore.FieldValue.serverTimestamp() });
+        // Save & Return
+        await db.collection('alignments').add({ teamCode, role, name, understanding, analysis, timestamp: new Date() });
         res.json({ success: true, analysis });
-    } catch (error) {
-        console.error("Analysis Error:", error);
-        res.status(500).json({ error: error.message });
+    } catch (e) {
+        console.error("Server Error:", e);
+        res.status(500).json({ error: e.message });
     }
 });
 
-// 4. REACT CATCH-ALL (Safe Version)
-// We use app.use here to avoid PathError with '*' on this system
-app.use((req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+// Restore other routes to keep UI working
+app.post('/api/generate-plan', async (req, res) => {
+    const { projectGoal, teamRoles, teamCode } = req.body;
+    if (teamCode) {
+        await db.collection('goals').add({ teamCode, goal: projectGoal, context: teamRoles, timestamp: new Date() });
+    }
+    res.json({ success: true, plan: { projectName: "Saved", tasks: [] } });
 });
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.get('/api/goals', async (req, res) => {
+    const code = req.query.code || req.query.teamCode;
+    const snapshot = await db.collection('goals').where('teamCode', '==', code).limit(1).get();
+    if (snapshot.empty) return res.json({ success: false });
+    res.json({ success: true, ...snapshot.docs[0].data() });
 });
+
+app.get('/api/alignments', async (req, res) => {
+    const code = req.query.code;
+    const snapshot = await db.collection('alignments').where('teamCode', '==', code).get();
+    const results = [];
+    snapshot.forEach(doc => results.push(doc.data()));
+    res.json({ success: true, results });
+});
+
+app.get(/.*/, (req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
+
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
