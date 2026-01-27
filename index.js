@@ -20,7 +20,7 @@ try {
 }
 const db = getFirestore();
 
-// 3. AI CONFIGURATION (Real AI Restored)
+// 3. AI CONFIGURATION
 const API_KEY = process.env.GEMINI_API_KEY;
 
 if (!API_KEY) {
@@ -28,7 +28,6 @@ if (!API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY || "MISSING_KEY");
-// using the verified working alias
 const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
 // --- API ROUTES ---
@@ -37,23 +36,48 @@ app.get('/api/health', (req, res) => {
     res.json({ status: "Online", mode: "Real AI (gemini-flash-latest)" });
 });
 
+// ▼▼▼ THE FIXED ROUTE ▼▼▼
 app.post('/api/analyze-alignment', async (req, res) => {
     try {
-        const { teamCode, role, name, understanding } = req.body;
-        console.log(`\n📢 PROCESSING: ${name} (${role})`);
+        // 1. Unpack the payload
+        const { teamCode, role, name, understanding, goal, context } = req.body;
 
-        // Database Fetch
-        const snapshot = await db.collection('goals').where('teamCode', '==', teamCode).limit(1).get();
-        if (snapshot.empty) return res.status(404).json({ error: "Goal not found" });
-        const leaderGoal = snapshot.docs[0].data().goal;
+        // DEBUG LOG: Verify what arrived
+        console.log("\n📦 PACKET RECEIVED:");
+        console.log(" - User:", name);
+        console.log(" - Goal Provided?", goal ? "YES" : "NO");
 
-        // AI Logic (Real)
+        let leaderGoal = goal;
+        let leaderContext = context || "";
+
+        // 2. The "Hybrid" Check
+        // If the frontend didn't send the goal (Old System), we look it up in the DB.
+        if (!leaderGoal) {
+            console.log("🔍 Goal missing in body. Searching DB for code:", teamCode);
+            const snapshot = await db.collection('goals').where('teamCode', '==', teamCode).limit(1).get();
+
+            if (snapshot.empty) {
+                console.error("❌ Database lookup failed.");
+                return res.status(404).json({ error: "Goal not found" });
+            }
+
+            leaderGoal = snapshot.docs[0].data().goal;
+            if (snapshot.docs[0].data().context) {
+                leaderContext = snapshot.docs[0].data().context;
+            }
+        } else {
+            console.log("✅ Using Goal provided by Frontend (New System)");
+        }
+
+        // 3. AI Logic
         let analysis = { score: 50, meetingType: "Needs Review", feedback: "AI Unavailable" };
         try {
-            console.log("🧠 Calling Gemini (flash-latest)...");
+            console.log("🧠 Calling Gemini...");
 
             const prompt = `
                 Leader Goal: "${leaderGoal}"
+                Context: "${leaderContext}"
+                
                 Member (${name}, ${role}) Understanding: "${understanding}"
                 
                 Compare them. Return strictly this JSON: 
@@ -68,25 +92,27 @@ app.post('/api/analyze-alignment', async (req, res) => {
             console.log("✅ AI Success! Score:", analysis.score);
 
         } catch (e) {
-            console.error("❌ AI Error (Falling back to safe default):", e.message);
-            // If it fails, we provide a safe fallback so the app doesn't crash
+            console.error("❌ AI Error:", e.message);
             analysis = {
                 score: 55,
                 meetingType: "1:1 Meeting",
-                feedback: "AI Connection Error. Please verify understanding manually."
+                feedback: "AI Connection Error."
             };
         }
 
-        // Save & Return
+        // 4. Save & Return
+        // Note: We save to 'alignments' even if we didn't look up the goal in the DB
         await db.collection('alignments').add({ teamCode, role, name, understanding, analysis, timestamp: new Date() });
         res.json({ success: true, analysis });
+
     } catch (e) {
         console.error("Server Error:", e);
         res.status(500).json({ error: e.message });
     }
 });
+// ▲▲▲ END FIXED ROUTE ▲▲▲
 
-// Restore other routes to keep UI working
+// Restore other routes (Unchanged)
 app.post('/api/generate-plan', async (req, res) => {
     const { projectGoal, teamRoles, teamCode } = req.body;
     if (teamCode) {

@@ -1,0 +1,21 @@
+runtime: nodejs20
+instance_class: F1
+automatic_scaling:
+  max_instances: 1
+env_variables:
+  # KEEP YOUR ACTUAL KEY HERE
+  GEMINI_API_KEY: "AIzaSyA0D1dwulu-UJcVoyAPiRgD0UqrCDV4Fsg"
+
+handlers:
+  # 1. API LANE (NEW): Send API calls to your script, not the HTML page
+  - url: /api/.*
+    script: auto
+
+  # 2. STATIC ASSETS: Serve your CSS and JS files
+  - url: /assets
+    static_dir: dist/assets
+
+  # 3. THE CATCH-ALL: Only serve the website UI if it's not an API call
+  - url: /.*
+    static_files: dist/index.html
+    upload: dist/index.html
