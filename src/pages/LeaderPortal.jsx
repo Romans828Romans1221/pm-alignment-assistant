@@ -6,47 +6,47 @@ import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firesto
 
 const LeaderPortal = () => {
     const navigate = useNavigate();
-
-    // --- NEW: AUTHENTICATION GATEKEEPER ---
-    // This state ensures we don't show a blank page while Firebase is "shaking hands"
     const [checkingAuth, setCheckingAuth] = useState(true);
 
+    // --- NEW: MOBILE DETECTION STATE ---
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 850);
+
     useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 850);
+        window.addEventListener('resize', handleResize);
+        
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (!user) {
-                // If no user is detected, safely redirect to the login page
                 navigate('/');
             } else {
-                // User is verified! Stop loading and show your dashboard
                 setCheckingAuth(false);
             }
         });
-        return () => unsubscribe();
+        return () => {
+            unsubscribe();
+            window.removeEventListener('resize', handleResize);
+        };
     }, [navigate]);
 
     // --- YOUR ORIGINAL STATE MANAGEMENT (Unchanged) ---
     const [teamCode, setTeamCode] = useState(''); 
     const [goal, setGoal] = useState('');
     const [context, setContext] = useState('');
-
     const [sessionId, setSessionId] = useState(''); 
     const [loading, setLoading] = useState(false);
     const [generatedLink, setGeneratedLink] = useState('');
-
     const [dashboardData, setDashboardData] = useState([]);
     const [dashboardLoading, setDashboardLoading] = useState(false);
 
-    // --- ON LOAD: Generate Secure ID ---
     useEffect(() => {
         const uniqueId = crypto.randomUUID();
         setSessionId(uniqueId);
     }, []);
 
-    // --- ACTION 1: SAVE & GENERATE LINK ---
+    // --- ACTIONS (Unchanged Logic) ---
     const handleGenerateLink = async () => {
         if (!teamCode || !goal) return alert("Please enter a Team Code and a Goal.");
         setLoading(true);
-
         try {
             await setDoc(doc(db, "missions", sessionId), {
                 sessionId: sessionId,
@@ -55,14 +55,11 @@ const LeaderPortal = () => {
                 context: context,
                 createdAt: new Date().toISOString()
             });
-
             const baseUrl = window.location.origin;
             const link = `${baseUrl}/member?code=${sessionId}`;
-
             await navigator.clipboard.writeText(link);
             setGeneratedLink(link);
             refreshDashboard();
-
         } catch (err) {
             console.error(err);
             alert("Database Error: " + err.message);
@@ -71,7 +68,6 @@ const LeaderPortal = () => {
         }
     };
 
-    // --- ACTION 2: SAVE ONLY (No Link) ---
     const handleSaveOnly = async () => {
         if (!teamCode || !goal) return alert("Please enter a Team Code and a Goal.");
         setLoading(true);
@@ -87,23 +83,18 @@ const LeaderPortal = () => {
         }
     };
 
-    // --- DASHBOARD: Fetch Data from Firestore ---
     const refreshDashboard = async () => {
         if (!sessionId) return;
         setDashboardLoading(true);
         try {
             let q = query(collection(db, "alignments"), where("sessionId", "==", sessionId));
             let querySnapshot = await getDocs(q);
-
             if (querySnapshot.empty && teamCode) {
                 q = query(collection(db, "alignments"), where("teamCode", "==", teamCode));
                 querySnapshot = await getDocs(q);
             }
-
             const results = [];
-            querySnapshot.forEach((doc) => {
-                results.push(doc.data());
-            });
+            querySnapshot.forEach((doc) => results.push(doc.data()));
             setDashboardData(results);
         } catch (err) {
             console.error("Dashboard Error:", err);
@@ -112,7 +103,6 @@ const LeaderPortal = () => {
         }
     };
 
-    // --- NEW: PREVENT BLANK SCREEN DURING AUTH ---
     if (checkingAuth) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'white', backgroundColor: '#000', fontFamily: 'Inter, sans-serif' }}>
@@ -121,18 +111,28 @@ const LeaderPortal = () => {
         );
     }
 
-    // --- YOUR ORIGINAL RETURN STATEMENT (Styling and UI preserved exactly) ---
+    // --- MOBILE UPDATED RETURN ---
     return (
-        <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto', color: 'white', display: 'flex', gap: '30px', alignItems: 'flex-start', fontFamily: 'Inter, sans-serif', minHeight: '100vh' }}>
+        <div style={{ 
+            padding: isMobile ? '20px' : '40px', 
+            maxWidth: '1200px', 
+            margin: '0 auto', 
+            color: 'white', 
+            display: 'flex', 
+            flexDirection: isMobile ? 'column' : 'row', // KEY MOBILE CHANGE
+            gap: '30px', 
+            alignItems: 'flex-start', 
+            fontFamily: 'Inter, sans-serif', 
+            minHeight: '100vh' 
+        }}>
 
             {/* LEFT COLUMN: Controls */}
-            <div style={{ flex: 1.5 }}>
+            <div style={{ width: '100%', flex: 1.5 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h1 style={{ margin: 0, fontSize: '24px' }}>🚀 Leader Control Center</h1>
+                    <h1 style={{ margin: 0, fontSize: isMobile ? '20px' : '24px' }}>🚀 Leader Control Center</h1>
                 </div>
 
-                {/* MISSION CONTROL CARD */}
-                <div style={{ background: '#000', padding: '25px', borderRadius: '16px', border: '1px solid #333' }}>
+                <div style={{ background: '#000', padding: isMobile ? '20px' : '25px', borderRadius: '16px', border: '1px solid #333' }}>
                     <h3 style={{ marginTop: 0 }}>The Mission</h3>
 
                     <label style={{ display: 'block', fontSize: '0.8em', fontWeight: 'bold', color: '#71717a', marginBottom: '5px' }}>TEAM CODE (REQUIRED)</label>
@@ -163,16 +163,13 @@ const LeaderPortal = () => {
                     <button
                         onClick={handleGenerateLink}
                         disabled={loading}
-                        style={{ width: '100%', background: '#6366f1', color: 'white', border: 'none', padding: '15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem', transition: '0.2s' }}
+                        style={{ width: '100%', background: '#6366f1', color: 'white', border: 'none', padding: '15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}
                     >
                         🔗 {loading ? "Processing..." : "Generate Member Link"}
                     </button>
 
                     <div style={{ textAlign: 'center', marginTop: '15px' }}>
-                        <button
-                            onClick={handleSaveOnly}
-                            style={{ background: 'none', border: 'none', color: '#71717a', fontSize: '0.85em', textDecoration: 'underline', cursor: 'pointer' }}
-                        >
+                        <button onClick={handleSaveOnly} style={{ background: 'none', border: 'none', color: '#71717a', fontSize: '0.85em', textDecoration: 'underline', cursor: 'pointer' }}>
                             Save mission without generating link
                         </button>
                     </div>
@@ -187,20 +184,17 @@ const LeaderPortal = () => {
             </div>
 
             {/* RIGHT COLUMN: DASHBOARD */}
-            <div style={{ flex: 1 }}>
-                <div style={{ background: '#111', padding: '20px', borderRadius: '16px', border: '1px solid #333', minHeight: '400px' }}>
+            <div style={{ width: '100%', flex: 1 }}>
+                <div style={{ background: '#111', padding: '20px', borderRadius: '16px', border: '1px solid #333', minHeight: isMobile ? 'auto' : '400px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
                         <h3 style={{ margin: 0 }}>📊 Team Pulse</h3>
-                        <button
-                            onClick={refreshDashboard}
-                            style={{ background: '#2563eb', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '6px', fontSize: '0.8em', cursor: 'pointer' }}
-                        >
+                        <button onClick={refreshDashboard} style={{ background: '#2563eb', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '6px', fontSize: '0.8em', cursor: 'pointer' }}>
                             {dashboardLoading ? "..." : "🔄 Refresh"}
                         </button>
                     </div>
 
                     {dashboardData.length === 0 ? (
-                        <div style={{ textAlign: 'center', color: '#555', marginTop: '50px' }}>
+                        <div style={{ textAlign: 'center', color: '#555', padding: '40px 0' }}>
                             <p>No data yet.</p>
                             <p style={{ fontSize: '0.8em' }}>Share the link and click Refresh!</p>
                         </div>
@@ -215,23 +209,15 @@ const LeaderPortal = () => {
                                     <div key={index} style={{ background: '#222', padding: '15px', borderRadius: '10px', borderLeft: `4px solid ${isHigh ? '#4ade80' : '#facc15'}` }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
                                             <div>
-                                                <strong style={{ color: '#fff', display: 'block', fontSize: '1.1em' }}>
-                                                    {result.name || "Anonymous Member"}
-                                                </strong>
-                                                <span style={{ fontSize: '0.85em', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                                    {result.role || "Member"}
-                                                </span>
+                                                <strong style={{ color: '#fff', display: 'block', fontSize: '1.1em' }}>{result.name}</strong>
+                                                <span style={{ fontSize: '0.85em', color: '#aaa' }}>{result.role}</span>
                                             </div>
-                                            <span style={{ color: isHigh ? '#4ade80' : '#facc15', fontWeight: 'bold', fontSize: '1.2em' }}>
-                                                {score}%
-                                            </span>
+                                            <span style={{ color: isHigh ? '#4ade80' : '#facc15', fontWeight: 'bold' }}>{score}%</span>
                                         </div>
                                         <div style={{ background: '#18181b', padding: '10px', borderRadius: '6px', marginTop: '10px', border: '1px solid #333' }}>
                                             <p style={{ margin: 0, fontSize: '0.9em', color: '#ddd', fontStyle: 'italic' }}>"{result.understanding}"</p>
                                         </div>
-                                        <div style={{ marginTop: '10px', fontSize: '0.8em', color: '#a78bfa' }}>
-                                            💡 Rec: {meeting}
-                                        </div>
+                                        <div style={{ marginTop: '10px', fontSize: '0.8em', color: '#a78bfa' }}>💡 Rec: {meeting}</div>
                                     </div>
                                 );
                             })}

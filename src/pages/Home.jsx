@@ -15,7 +15,7 @@ const Home = () => {
         } catch (error) {
             console.error("Login Failed:", error.message);
             alert("Login Issue: " + error.message);
-        } 8
+        } 
     };
 
     return (
