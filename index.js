@@ -1,142 +1,104 @@
-require('dotenv').config();
+/* --- 1. CORE CONFIGURATION --- */
+require('dotenv').config(); // Loads local .env for development
 const express = require('express');
 const cors = require('cors');
-// 1. IMPORT THE DEVELOPER LIBRARY
+const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const admin = require('firebase-admin');
 const { getFirestore } = require('firebase-admin/firestore');
-const path = require('path');
+
+// Import your Senior Dev config file
+const { config } = require('./src/api/config'); 
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); // Essential for reading req.body
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// 2. DATABASE SETUP
+/* --- 2. DATABASE & AI SETUP --- */
 try {
     admin.initializeApp();
 } catch (e) {
-    // Ignore if already initialized
+    // Already initialized
 }
 const db = getFirestore();
 
-// 3. AI CONFIGURATION
-const API_KEY = process.env.GEMINI_API_KEY;
-
-if (!API_KEY) {
-    console.warn("⚠️ WARNING: GEMINI_API_KEY is missing from .env file!");
-}
-
+// Use the API key specifically from your config object
+const API_KEY = config.geminiApiKey;
 const genAI = new GoogleGenerativeAI(API_KEY || "MISSING_KEY");
 const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-// --- API ROUTES ---
-
-app.get('/api/health', (req, res) => {
-    res.json({ status: "Online", mode: "Real AI (gemini-flash-latest)" });
-});
-
-// ▼▼▼ THE FIXED ROUTE ▼▼▼
+/* --- 3. THE UNIFIED API ROUTE --- */
+// This merges the Validation Shield with your AI Business Logic
 app.post('/api/analyze-alignment', async (req, res) => {
     try {
-        // 1. Unpack the payload
+        // --- STEP A: VALIDATION SHIELD (The "Senior" Check) ---
         const { teamCode, role, name, understanding, goal, context } = req.body;
+        
+        // Block invalid data before it hits your DB or AI costs
+        if (!teamCode || typeof teamCode !== 'string' || teamCode.length > 50) {
+            return res.status(400).json({ 
+                error: "Invalid Team Code",
+                message: "A valid team code is required to proceed." 
+            });
+        }
 
-        // DEBUG LOG: Verify what arrived
-        console.log("\n📦 PACKET RECEIVED:");
-        console.log(" - User:", name);
-        console.log(" - Goal Provided?", goal ? "YES" : "NO");
-
+        // --- STEP B: LOGGING & PREPARATION ---
+        console.log("\n📦 PACKET RECEIVED:", name);
         let leaderGoal = goal;
         let leaderContext = context || "";
 
-        // 2. The "Hybrid" Check
-        // If the frontend didn't send the goal (Old System), we look it up in the DB.
+        // --- STEP C: THE "HYBRID" CHECK (DB vs Frontend) ---
         if (!leaderGoal) {
             console.log("🔍 Goal missing in body. Searching DB for code:", teamCode);
             const snapshot = await db.collection('goals').where('teamCode', '==', teamCode).limit(1).get();
 
             if (snapshot.empty) {
-                console.error("❌ Database lookup failed.");
-                return res.status(404).json({ error: "Goal not found" });
+                return res.status(404).json({ error: "Goal not found in database." });
             }
 
             leaderGoal = snapshot.docs[0].data().goal;
-            if (snapshot.docs[0].data().context) {
-                leaderContext = snapshot.docs[0].data().context;
-            }
-        } else {
-            console.log("✅ Using Goal provided by Frontend (New System)");
+            leaderContext = snapshot.docs[0].data().context || "";
         }
 
-        // 3. AI Logic
-        let analysis = { score: 50, meetingType: "Needs Review", feedback: "AI Unavailable" };
-        try {
-            console.log("🧠 Calling Gemini...");
+        // --- STEP D: AI GENERATION ---
+        console.log("🧠 Calling Gemini AI...");
+        const prompt = `
+            Leader Goal: "${leaderGoal}"
+            Context: "${leaderContext}"
+            Member (${name}, ${role}) Understanding: "${understanding}"
+            Compare them. Return strictly this JSON: 
+            { "score": (0-100), "meetingType": "None" or "1:1 Meeting", "feedback": "Short advice" }
+        `;
 
-            const prompt = `
-                Leader Goal: "${leaderGoal}"
-                Context: "${leaderContext}"
-                
-                Member (${name}, ${role}) Understanding: "${understanding}"
-                
-                Compare them. Return strictly this JSON: 
-                { "score": (0-100), "meetingType": "None" or "1:1 Meeting", "feedback": "Short advice for leader" }
-            `;
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+        const analysis = JSON.parse(text);
 
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            let text = response.text().replace(/```json/g, '').replace(/```/g, '').trim();
-
-            analysis = JSON.parse(text);
-            console.log("✅ AI Success! Score:", analysis.score);
-
-        } catch (e) {
-            console.error("❌ AI Error:", e.message);
-            analysis = {
-                score: 55,
-                meetingType: "1:1 Meeting",
-                feedback: "AI Connection Error."
-            };
-        }
-
-        // 4. Save & Return
-        // Note: We save to 'alignments' even if we didn't look up the goal in the DB
-        await db.collection('alignments').add({ teamCode, role, name, understanding, analysis, timestamp: new Date() });
+        // --- STEP E: SAVE & RETURN ---
+        await db.collection('alignments').add({ 
+            teamCode, role, name, understanding, analysis, timestamp: new Date() 
+        });
+        
         res.json({ success: true, analysis });
 
     } catch (e) {
-        console.error("Server Error:", e);
-        res.status(500).json({ error: e.message });
+        console.error("❌ Server Error:", e);
+        res.status(500).json({ error: "Internal Server Error", message: e.message });
     }
 });
-// ▲▲▲ END FIXED ROUTE ▲▲▲
 
-// Restore other routes (Unchanged)
-app.post('/api/generate-plan', async (req, res) => {
-    const { projectGoal, teamRoles, teamCode } = req.body;
-    if (teamCode) {
-        await db.collection('goals').add({ teamCode, goal: projectGoal, context: teamRoles, timestamp: new Date() });
-    }
-    res.json({ success: true, plan: { projectName: "Saved", tasks: [] } });
+/* --- 4. ADDITIONAL ROUTES --- */
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: "Online", 
+        mode: config.nodeEnv === 'production' ? "Production" : "Development" 
+    });
 });
 
-app.get('/api/goals', async (req, res) => {
-    const code = req.query.code || req.query.teamCode;
-    const snapshot = await db.collection('goals').where('teamCode', '==', code).limit(1).get();
-    if (snapshot.empty) return res.json({ success: false });
-    res.json({ success: true, ...snapshot.docs[0].data() });
-});
-
-app.get('/api/alignments', async (req, res) => {
-    const code = req.query.code;
-    const snapshot = await db.collection('alignments').where('teamCode', '==', code).get();
-    const results = [];
-    snapshot.forEach(doc => results.push(doc.data()));
-    res.json({ success: true, results });
-});
-
+// Serve the frontend PWA for any non-API route
 app.get(/.*/, (req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const PORT = config.port || 8080;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

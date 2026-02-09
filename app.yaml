@@ -1,10 +1,13 @@
 runtime: nodejs20
 instance_class: F1
 automatic_scaling:
-  max_instances: 1
-env_variables:
-  # KEEP YOUR ACTUAL KEY HERE
-  GEMINI_API_KEY: "AIzaSyA0D1dwulu-UJcVoyAPiRgD0UqrCDV4Fsg"
+max_instances: 1
+includes:
+  - env_vars.yaml
+
+#env_variables:
+  # KEEP YOUR ACTUAL KEY HERE // "MUST_BE_SET_IN_CLOUD_CONSOLE"- GEMINI_API_KEY: AIzaSyA0D1dwulu-UJcVoyAPiRgD0UqrCDV4Fsg
+   
 
 handlers:
   # 1. API LANE (NEW): Send API calls to your script, not the HTML page
