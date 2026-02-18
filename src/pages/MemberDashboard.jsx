@@ -49,9 +49,9 @@ function MemberDashboard() {
                 <button onClick={handleLogout} style={{ padding: '5px 10px', fontSize: '0.8em' }}>Logout</button>
             </div>
 
-            <div id="active-mission-banner" className="highlight-box" style={{ display: 'none', border: '1px solid rgba(255,255,255,0.1)', padding: '15px', borderRadius: '8px', marginBottom: '30px' }}>
-                <strong style={{ color: '#4CAF50' }}>🎯 Active Leader Goal:</strong>
-                <span id="activeGoalText" style={{ display: 'block', marginTop: '5px', color: '#fff' }}></span>
+            <div id="active-mission-banner" className="highlight-box" style={{ display: 'none', border: '1px solid #C8E6C9', padding: '15px', borderRadius: '8px', marginBottom: '30px', background: '#E8F5E9' }}>
+                <strong style={{ color: '#2E7D32' }}>🎯 Active Leader Goal:</strong>
+                <span id="activeGoalText" style={{ display: 'block', marginTop: '5px', color: '#1B5E20' }}></span>
             </div>
 
             <div style={{ display: 'flex', gap: '20px', marginBottom: '40px', flexWrap: 'wrap' }}>

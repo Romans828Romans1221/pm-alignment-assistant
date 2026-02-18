@@ -1,0 +1,113 @@
+/* src/components/TeamPulse.module.css */
+.dashboardCard {
+    background: #FFFFFF;
+    /* Clean White */
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid #D1D8E0;
+    /* Soft Sand Border */
+    min-height: 400px;
+    width: 100%;
+    /* Allows it to be responsive */
+    max-width: 600px;
+    /* THE FIX: Matches the width of Mission Control */
+    flex: 1;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    box-sizing: border-box;
+    /* Ensures padding doesn't push the card out */
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.title {
+    margin: 0;
+    color: #2C3E50;
+    /* Deep Sea Slate */
+}
+
+.refreshButton {
+    background: #4A90E2;
+    /* Coastal Blue */
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.8em;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.refreshButton:hover {
+    background: #357ABD;
+}
+
+.emptyState {
+    text-align: center;
+    color: #7F8C8D;
+    padding: 40px 0;
+}
+
+.resultList {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.resultItem {
+    background: #FAFAFA;
+    /* Off-White/Tan Tint */
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #E2E8F0;
+}
+
+.nameRow {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.nameText {
+    color: #2C3E50;
+    display: block;
+    font-size: 1.1em;
+    font-weight: bold;
+}
+
+.roleText {
+    font-size: 0.85em;
+    color: #7F8C8D;
+}
+
+.scoreText {
+    font-weight: bold;
+}
+
+.understandingBox {
+    background: #FFFFFF;
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 10px;
+    border: 1px solid #D1D8E0;
+}
+
+.understandingText {
+    margin: 0;
+    font-size: 0.9em;
+    color: #2C3E50;
+    font-style: italic;
+}
+
+.recommendation {
+    margin-top: 10px;
+    font-size: 0.85em;
+    color: #4A90E2;
+    /* Coastal Blue */
+    font-weight: bold;
+}

@@ -1,0 +1,78 @@
+/* src/components/MissionControl.module.css */
+
+.card {
+    background: #FFFFFF;
+    /* Crisp White */
+    padding: 25px;
+    border-radius: 16px;
+    border: 1px solid #D1D8E0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.sectionTitle {
+    margin-top: 0;
+    color: #4A90E2;
+    /* Coastal Blue */
+    font-size: 1.5rem;
+}
+
+.label {
+    display: block;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: #7F8C8D;
+    /* Deep Sea Slate */
+    margin-bottom: 5px;
+}
+
+.input,
+.textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: #FAFAFA;
+    /* Off-white / Tan tint */
+    border: 1px solid #D1D8E0;
+    border-radius: 8px;
+    padding: 12px;
+    color: #2C3E50;
+    margin-bottom: 15px;
+    font-family: inherit;
+}
+
+.primaryButton {
+    width: 100%;
+    background: #4A90E2;
+    /* Coastal Blue */
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s ease;
+}
+
+.primaryButton:hover {
+    background: #357ABD;
+}
+
+.secondaryButton {
+    background: none;
+    border: none;
+    color: #7F8C8D;
+    font-size: 0.85em;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.linkSuccess {
+    margin-top: 20px;
+    background: #E8F5E9;
+    border: 1px solid #2E7D32;
+    padding: 15px;
+    border-radius: 6px;
+    color: #2E7D32;
+    font-size: 0.9em;
+    word-break: break-all;
+}

@@ -1,9 +1,9 @@
 /* client/src/pages/Home.module.css */
 
-/* THE VOID: Deep black background that covers the whole screen */
-/* UPDATED CONTAINER: Use standard height for better mobile rendering */
+/* CONTAINER: Use standard height for better mobile rendering */
 .container {
-    background-color: #000000;
+    background-color: transparent;
+    /* Inherits from body (off-white) */
     min-height: 100vh;
     width: 100%;
     display: flex;
@@ -11,7 +11,7 @@
     align-items: center;
     /* Vertically centers the card on desktop */
     justify-content: center;
-    color: white;
+    color: #2C3E50;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     padding: 20px;
     box-sizing: border-box;
@@ -35,87 +35,87 @@
 .logo {
     font-size: 1.25rem;
     font-weight: bold;
-    color: white;
-    /* Subtle glow for the logo */
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    color: #4A90E2;
+    /* Coastal Blue */
+    /* No glow needed for light mode */
 }
 
 .navButton {
     background: none;
     border: none;
-    color: #888;
+    color: #7F8C8D;
     cursor: pointer;
     padding: 8px 16px;
     transition: color 0.2s;
+    font-weight: 500;
 }
 
 .navButtonActive {
-    color: white;
-    font-weight: 500;
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+    color: #4A90E2;
+    /* Coastal Blue */
+    font-weight: 700;
+    border-bottom: 2px solid #4A90E2;
 }
 
-/* === THE METALLIC CARD === */
+/* === THE COASTAL CARD === */
 .card {
-    /* Dark Metallic Gradient */
-    background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
-    border: 1px solid #333;
-    color: #e0e0e0;
+    background: #FFFFFF;
+    border: 1px solid #D1D8E0;
+    color: #2C3E50;
     padding: 40px;
     border-radius: 24px;
     width: 90%;
     max-width: 400px;
-    /* Deep shadow to make it float */
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    /* Soft shadow to make it float */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
     text-align: center;
     position: relative;
     z-index: 20;
 }
 
-/* The Glowing Icon */
+/* The Icon */
 .iconGlow {
     font-size: 40px;
     margin-bottom: 20px;
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+    /* No text shadow needed */
 }
 
-/* The Glowing Title */
+/* The Title */
 .titleGlow {
     font-size: 24px;
     font-weight: bold;
     margin-bottom: 10px;
-    color: #ffffff;
-    text-shadow: 0 0 12px rgba(255, 255, 255, 0.5);
+    color: #2C3E50;
+    /* No text shadow needed */
 }
 
 .subtitle {
-    color: #aaa;
+    color: #7F8C8D;
     margin-bottom: 30px;
     font-size: 14px;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
 }
 
-/* The Dark Button */
+/* The Button */
 .googleButton {
     width: 100%;
     padding: 16px;
     border-radius: 12px;
-    /* Dark borders and background */
-    border: 1px solid #444;
-    background-color: #333;
+    /* Clean white button with border */
+    border: 1px solid #D1D8E0;
+    background-color: #FFFFFF;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: space-between;
     transition: all 0.2s ease;
     margin-top: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .googleButton:hover {
-    border-color: #6366f1;
-    /* Indigo glow on hover */
-    background-color: #444;
-    box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+    border-color: #4A90E2;
+    background-color: #F8F9FA;
+    box-shadow: 0 5px 15px rgba(74, 144, 226, 0.15);
 }
 
 .googleContent {
@@ -127,23 +127,23 @@
 .buttonText {
     font-size: 16px;
     font-weight: 500;
-    color: #fff;
+    color: #2C3E50;
 }
 
 .arrow {
-    color: #666;
+    color: #7F8C8D;
     transition: transform 0.2s;
 }
 
 .googleButton:hover .arrow {
-    color: #fff;
+    color: #4A90E2;
     transform: translateX(4px);
 }
 
 .footer {
     margin-top: 30px;
     font-size: 12px;
-    color: #666;
+    color: #95A5A6;
     display: flex;
     justify-content: center;
     gap: 10px;
@@ -161,9 +161,10 @@
     .nav {
         /* Aligning header properly for mobile view */
         padding: 15px 20px;
-        background: rgba(0, 0, 0, 0.8);
-        /* Slight dark fade for header visibility */
+        background: rgba(255, 255, 255, 0.9);
+        /* Slight white fade for header visibility */
         backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     }
 
     .card {

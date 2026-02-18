@@ -1,0 +1,27 @@
+/* src/pages/LeaderPortal.module.css */
+.container {
+    padding: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+    color: #2C3E50;
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+    /* Keeps them top-aligned on Desktop */
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    background-color: #F8F9FA;
+    /* Off-white background */
+}
+
+@media (max-width: 850px) {
+    .container {
+        flex-direction: column;
+        align-items: center;
+        /* THE FIX: Horizontally centers the cards */
+        padding: 20px;
+        /* Adds the "buffer" around the screen edges */
+        gap: 24px;
+        /* Consistent spacing between cards */
+    }
+}
