@@ -1,5 +1,8 @@
+/* src/App.jsx */
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+
+// These paths only work if App.jsx is in the src root!
 import Home from './pages/Home';
 import LeaderPortal from './pages/LeaderPortal';
 import MemberDashboard from './pages/MemberDashboard';

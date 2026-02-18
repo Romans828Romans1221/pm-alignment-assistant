@@ -1,34 +1,19 @@
+/* src/pages/LeaderPortal.jsx */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import { auth, db } from '../api/firebase'; 
 import { onAuthStateChanged } from 'firebase/auth'; 
 import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
+// 1. IMPORT THE NEW COMPONENT
+import MissionControl from '../components/MissionControl';
+
 const LeaderPortal = () => {
     const navigate = useNavigate();
     const [checkingAuth, setCheckingAuth] = useState(true);
-
-    // --- NEW: MOBILE DETECTION STATE ---
     const [isMobile, setIsMobile] = useState(window.innerWidth < 850);
 
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 850);
-        window.addEventListener('resize', handleResize);
-        
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                navigate('/');
-            } else {
-                setCheckingAuth(false);
-            }
-        });
-        return () => {
-            unsubscribe();
-            window.removeEventListener('resize', handleResize);
-        };
-    }, [navigate]);
-
-    // --- YOUR ORIGINAL STATE MANAGEMENT (Unchanged) ---
+    // State Management
     const [teamCode, setTeamCode] = useState(''); 
     const [goal, setGoal] = useState('');
     const [context, setContext] = useState('');
@@ -39,29 +24,36 @@ const LeaderPortal = () => {
     const [dashboardLoading, setDashboardLoading] = useState(false);
 
     useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 850);
+        window.addEventListener('resize', handleResize);
+        
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (!user) navigate('/');
+            else setCheckingAuth(false);
+        });
+
         const uniqueId = crypto.randomUUID();
         setSessionId(uniqueId);
-    }, []);
 
-    // --- ACTIONS (Unchanged Logic) ---
+        return () => {
+            unsubscribe();
+            window.removeEventListener('resize', handleResize);
+        };
+    }, [navigate]);
+
+    // Actions
     const handleGenerateLink = async () => {
         if (!teamCode || !goal) return alert("Please enter a Team Code and a Goal.");
         setLoading(true);
         try {
             await setDoc(doc(db, "missions", sessionId), {
-                sessionId: sessionId,
-                teamName: teamCode,
-                goal: goal,
-                context: context,
-                createdAt: new Date().toISOString()
+                sessionId, teamName: teamCode, goal, context, createdAt: new Date().toISOString()
             });
-            const baseUrl = window.location.origin;
-            const link = `${baseUrl}/member?code=${sessionId}`;
+            const link = `${window.location.origin}/member?code=${sessionId}`;
             await navigator.clipboard.writeText(link);
             setGeneratedLink(link);
             refreshDashboard();
         } catch (err) {
-            console.error(err);
             alert("Database Error: " + err.message);
         } finally {
             setLoading(false);
@@ -75,7 +67,7 @@ const LeaderPortal = () => {
             await setDoc(doc(db, "missions", sessionId), {
                 sessionId, teamName: teamCode, goal, context, createdAt: new Date().toISOString()
             });
-            alert("Draft Saved Successfully (No link generated)");
+            alert("Draft Saved Successfully");
         } catch (err) {
             alert("Error: " + err.message);
         } finally {
@@ -89,101 +81,44 @@ const LeaderPortal = () => {
         try {
             let q = query(collection(db, "alignments"), where("sessionId", "==", sessionId));
             let querySnapshot = await getDocs(q);
-            if (querySnapshot.empty && teamCode) {
-                q = query(collection(db, "alignments"), where("teamCode", "==", teamCode));
-                querySnapshot = await getDocs(q);
-            }
             const results = [];
             querySnapshot.forEach((doc) => results.push(doc.data()));
             setDashboardData(results);
         } catch (err) {
-            console.error("Dashboard Error:", err);
+            console.error(err);
         } finally {
             setDashboardLoading(false);
         }
     };
 
-    if (checkingAuth) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'white', backgroundColor: '#000', fontFamily: 'Inter, sans-serif' }}>
-                <h2>🚀 Initializing Mission Control...</h2>
-            </div>
-        );
-    }
+    if (checkingAuth) return <div style={{backgroundColor: '#000', height: '100vh'}}><h2 style={{color: 'white'}}>🚀 Initializing...</h2></div>;
 
-    // --- MOBILE UPDATED RETURN ---
     return (
-        <div style={{ 
-            padding: isMobile ? '20px' : '40px', 
-            maxWidth: '1200px', 
-            margin: '0 auto', 
-            color: 'white', 
-            display: 'flex', 
-            flexDirection: isMobile ? 'column' : 'row', // KEY MOBILE CHANGE
-            gap: '30px', 
-            alignItems: 'flex-start', 
-            fontFamily: 'Inter, sans-serif', 
-            minHeight: '100vh' 
-        }}>
+        <div style={{ padding: isMobile ? '20px' : '40px', maxWidth: '1200px', margin: '0 auto', color: 'white', display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '30px', alignItems: 'flex-start', fontFamily: 'Inter, sans-serif', minHeight: '100vh' }}>
 
-            {/* LEFT COLUMN: Controls */}
+            {/* LEFT COLUMN: Controls (Now Modularized) */}
             <div style={{ width: '100%', flex: 1.5 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                     <h1 style={{ margin: 0, fontSize: isMobile ? '20px' : '24px' }}>🚀 Leader Control Center</h1>
                 </div>
 
-                <div style={{ background: '#000', padding: isMobile ? '20px' : '25px', borderRadius: '16px', border: '1px solid #333' }}>
-                    <h3 style={{ marginTop: 0 }}>The Mission</h3>
-
-                    <label style={{ display: 'block', fontSize: '0.8em', fontWeight: 'bold', color: '#71717a', marginBottom: '5px' }}>TEAM CODE (REQUIRED)</label>
-                    <input
-                        value={teamCode}
-                        onChange={(e) => setTeamCode(e.target.value)}
-                        placeholder="e.g. Squad-Alpha"
-                        style={{ width: '100%', boxSizing: 'border-box', background: '#111', border: '1px solid #333', borderRadius: '8px', padding: '12px', color: 'white', marginBottom: '15px' }}
-                    />
-
-                    <label style={{ display: 'block', fontSize: '0.8em', fontWeight: 'bold', color: '#71717a', marginBottom: '5px' }}>CORE GOAL</label>
-                    <input
-                        value={goal}
-                        onChange={(e) => setGoal(e.target.value)}
-                        placeholder="What are we building?"
-                        style={{ width: '100%', boxSizing: 'border-box', background: '#111', border: '1px solid #333', borderRadius: '8px', padding: '12px', color: 'white', marginBottom: '15px' }}
-                    />
-
-                    <label style={{ display: 'block', fontSize: '0.8em', fontWeight: 'bold', color: '#71717a', marginBottom: '5px' }}>DETAILED CONTEXT</label>
-                    <textarea
-                        value={context}
-                        onChange={(e) => setContext(e.target.value)}
-                        placeholder="Add details: deadlines, specific tools, constraints..."
-                        rows="4"
-                        style={{ width: '100%', background: '#111', border: '1px solid #333', borderRadius: '8px', padding: '12px', color: 'white', marginBottom: '20px' }}
-                    />
-
-                    <button
-                        onClick={handleGenerateLink}
-                        disabled={loading}
-                        style={{ width: '100%', background: '#6366f1', color: 'white', border: 'none', padding: '15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}
-                    >
-                        🔗 {loading ? "Processing..." : "Generate Member Link"}
-                    </button>
-
-                    <div style={{ textAlign: 'center', marginTop: '15px' }}>
-                        <button onClick={handleSaveOnly} style={{ background: 'none', border: 'none', color: '#71717a', fontSize: '0.85em', textDecoration: 'underline', cursor: 'pointer' }}>
-                            Save mission without generating link
-                        </button>
-                    </div>
-
-                    {generatedLink && (
-                        <div style={{ marginTop: '20px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #059669', padding: '15px', borderRadius: '6px', color: '#34d399', fontSize: '0.9em', wordBreak: 'break-all' }}>
-                            <strong style={{ display: 'block', marginBottom: '5px', color: '#10b981' }}>✅ Link Copied!</strong>
-                            {generatedLink}
-                        </div>
-                    )}
-                </div>
+                {/* THE NEW COMPONENT IN ACTION */}
+                <MissionControl 
+                    isMobile={isMobile}
+                    teamCode={teamCode}
+                    setTeamCode={setTeamCode}
+                    goal={goal}
+                    setGoal={setGoal}
+                    context={context}
+                    setContext={setContext}
+                    handleGenerateLink={handleGenerateLink}
+                    loading={loading}
+                    handleSaveOnly={handleSaveOnly}
+                    generatedLink={generatedLink}
+                />
             </div>
 
-            {/* RIGHT COLUMN: DASHBOARD */}
+            {/* RIGHT COLUMN: DASHBOARD (Still in-line for now) */}
             <div style={{ width: '100%', flex: 1 }}>
                 <div style={{ background: '#111', padding: '20px', borderRadius: '16px', border: '1px solid #333', minHeight: isMobile ? 'auto' : '400px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
@@ -194,33 +129,15 @@ const LeaderPortal = () => {
                     </div>
 
                     {dashboardData.length === 0 ? (
-                        <div style={{ textAlign: 'center', color: '#555', padding: '40px 0' }}>
-                            <p>No data yet.</p>
-                            <p style={{ fontSize: '0.8em' }}>Share the link and click Refresh!</p>
-                        </div>
+                        <div style={{ textAlign: 'center', color: '#555', padding: '40px 0' }}><p>No data yet.</p></div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                            {dashboardData.map((result, index) => {
-                                const score = result.analysis?.score || result.score || 0;
-                                const meeting = result.analysis?.meetingType || "Check-in";
-                                const isHigh = score > 80;
-
-                                return (
-                                    <div key={index} style={{ background: '#222', padding: '15px', borderRadius: '10px', borderLeft: `4px solid ${isHigh ? '#4ade80' : '#facc15'}` }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                                            <div>
-                                                <strong style={{ color: '#fff', display: 'block', fontSize: '1.1em' }}>{result.name}</strong>
-                                                <span style={{ fontSize: '0.85em', color: '#aaa' }}>{result.role}</span>
-                                            </div>
-                                            <span style={{ color: isHigh ? '#4ade80' : '#facc15', fontWeight: 'bold' }}>{score}%</span>
-                                        </div>
-                                        <div style={{ background: '#18181b', padding: '10px', borderRadius: '6px', marginTop: '10px', border: '1px solid #333' }}>
-                                            <p style={{ margin: 0, fontSize: '0.9em', color: '#ddd', fontStyle: 'italic' }}>"{result.understanding}"</p>
-                                        </div>
-                                        <div style={{ marginTop: '10px', fontSize: '0.8em', color: '#a78bfa' }}>💡 Rec: {meeting}</div>
-                                    </div>
-                                );
-                            })}
+                            {dashboardData.map((result, index) => (
+                                <div key={index} style={{ background: '#222', padding: '15px', borderRadius: '10px', borderLeft: '4px solid #4ade80' }}>
+                                    <strong>{result.name}</strong> - {result.analysis?.score}%
+                                    <p style={{fontSize: '0.9em', color: '#ddd'}}>"{result.understanding}"</p>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>

@@ -8,7 +8,8 @@ const admin = require('firebase-admin');
 const { getFirestore } = require('firebase-admin/firestore');
 
 // Import your Senior Dev config file
-const { config } = require('./src/api/config'); 
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 const app = express();
 app.use(cors());
@@ -24,7 +25,7 @@ try {
 const db = getFirestore();
 
 // Use the API key specifically from your config object
-const API_KEY = config.geminiApiKey;
+const API_KEY = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(API_KEY || "MISSING_KEY");
 const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
@@ -100,5 +101,5 @@ app.get('/api/health', (req, res) => {
 // Serve the frontend PWA for any non-API route
 app.get(/.*/, (req, res) => res.sendFile(path.join(__dirname, 'dist', 'index.html')));
 
-const PORT = config.port || 8080;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

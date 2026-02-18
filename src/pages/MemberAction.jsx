@@ -3,6 +3,10 @@ import { useSearchParams } from 'react-router-dom';
 import { db } from '../api/firebase'; 
 import { doc, getDoc, addDoc, collection } from 'firebase/firestore';
 
+/* src/pages/MemberAction.jsx */
+import { API_URL } from '../api/config';
+
+
 const MemberAction = () => {
     const [searchParams] = useSearchParams();
     const sessionId = searchParams.get('code')?.trim(); 
@@ -49,7 +53,7 @@ const MemberAction = () => {
             console.log("🚀 Sending to Server:", { teamCode: sessionId, name, role, understanding });
 
             // FIX: Using relative path and robust status check to prevent 'Error: 200'
-            const res = await fetch('/api/analyze-alignment', {
+            const res = await fetch(`${API_URL}/api/analyze-alignment`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
