@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../api/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { API_URL } from '../api/config';
 
 // 1. IMPORT THE NEW COMPONENT
 import MissionControl from '../components/MissionControl';
@@ -24,6 +25,7 @@ const LeaderPortal = () => {
     const [generatedLink, setGeneratedLink] = useState('');
     const [dashboardData, setDashboardData] = useState([]);
     const [dashboardLoading, setDashboardLoading] = useState(false);
+    const [isUpgrading, setIsUpgrading] = useState(false);
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 850);
@@ -42,6 +44,33 @@ const LeaderPortal = () => {
             window.removeEventListener('resize', handleResize);
         };
     }, [navigate]);
+
+    // Detect Stripe Success Redirect
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const isSuccess = urlParams.get('upgrade') === 'success';
+        const codeInUrl = urlParams.get('code');
+        if (isSuccess && codeInUrl) {
+            const unlockPro = async () => {
+                try {
+                    const res = await fetch(`${API_URL}/api/verify-upgrade`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ teamCode: codeInUrl })
+                    });
+
+                    if (res.ok) {
+                        alert("🎉 Payment Successful! Clarity Pro is now unlocked for your team.");
+                        // Clean up the URL so the alert doesn't keep firing on refresh
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                } catch (err) {
+                    console.error("Upgrade verification failed:", err);
+                }
+            };
+            unlockPro();
+        }
+    }, []);
 
     // Actions
     const handleGenerateLink = async () => {
@@ -93,6 +122,32 @@ const LeaderPortal = () => {
         }
     };
 
+    const handleUpgrade = async () => {
+        if (!sessionId) return alert("Please generate a mission link first.");
+
+        setIsUpgrading(true);
+        try {
+            const res = await fetch(`${API_URL}/api/create-checkout-session`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ teamCode: sessionId })
+            });
+
+            const data = await res.json();
+
+            if (data.url) {
+                window.location.href = data.url; // Redirects the Leader to the secure Stripe page
+            } else {
+                alert(data.error || "Could not initialize checkout.");
+            }
+        } catch (err) {
+            console.error("Checkout Error:", err);
+            alert("Payment system error. Please try again.");
+        } finally {
+            setIsUpgrading(false);
+        }
+    };
+
     if (checkingAuth) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><h2>🚀 Initializing...</h2></div>;
 
     return (
@@ -118,6 +173,31 @@ const LeaderPortal = () => {
                     handleSaveOnly={handleSaveOnly}
                     generatedLink={generatedLink}
                 />
+
+                {/* --- STRIPE UPGRADE BUTTON --- */}
+                <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                    <h4 style={{ margin: '0 0 10px 0', color: '#2C3E50' }}>Unlock Clarity Pro</h4>
+                    <p style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: '#7F8C8D' }}>
+                        Get unlimited alignment checks and advanced team insights for this mission.
+                    </p>
+                    <button
+                        onClick={handleUpgrade}
+                        disabled={isUpgrading || !sessionId}
+                        style={{
+                            backgroundColor: '#4ade80', // Coastal Green for positive action
+                            color: '#1e293b',
+                            border: 'none',
+                            padding: '12px 24px',
+                            borderRadius: '6px',
+                            fontWeight: 'bold',
+                            cursor: (isUpgrading || !sessionId) ? 'not-allowed' : 'pointer',
+                            width: '100%',
+                            opacity: (isUpgrading || !sessionId) ? 0.7 : 1
+                        }}
+                    >
+                        {isUpgrading ? "🔄 Connecting to Secure Checkout..." : "💎 Upgrade to Pro ($49)"}
+                    </button>
+                </div>
             </div>
 
             {/* RIGHT COLUMN: DASHBOARD (Now Modularized) */}

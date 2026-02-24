@@ -21,6 +21,14 @@ const MemberAction = () => {
 
     const [analysis, setAnalysis] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [showPaywall, setShowPaywall] = useState(false);
+
+    useEffect(() => {
+        // Ensure device ID for tracking
+        if (!localStorage.getItem('clarity_device_id')) {
+            localStorage.setItem('clarity_device_id', crypto.randomUUID());
+        }
+    }, []);
 
     useEffect(() => {
         const fetchMission = async () => {
@@ -47,24 +55,28 @@ const MemberAction = () => {
     }, [sessionId]);
 
     const handleAnalyze = async () => {
-        if (!name || !role || !understanding) return alert("Please fill in all fields (Name, Role, Understanding).");
+        if (!name || !role || !understanding) return alert("Please fill in all fields.");
 
         setLoading(true);
         try {
-            console.log("🚀 Sending to Server:", { teamCode: sessionId, name, role, understanding });
-
             const res = await fetch(`${API_URL}/api/analyze-alignment`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     teamCode: sessionId,
-                    name: name,
-                    role: role,
-                    understanding: understanding,
+                    deviceId: localStorage.getItem('clarity_device_id'),
+                    name, role, understanding,
                     goal: goalData.goal,
                     context: goalData.context
                 })
             });
+
+            // NEW: Intercept the Paywall Signal
+            if (res.status === 402) {
+                setShowPaywall(true);
+                setLoading(false);
+                return;
+            }
 
             if (!res.ok) {
                 const errorText = await res.text();
@@ -160,6 +172,37 @@ const MemberAction = () => {
                     </div>
                     <h3 className={styles.recommendation}>Recommendation: {analysis.meetingType}</h3>
                     <p className={styles.feedback}>"{analysis.feedback}"</p>
+                </div>
+            )}
+
+            {/* --- MONETIZATION MODAL (Member View) --- */}
+            {showPaywall && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    backgroundColor: 'rgba(44, 62, 80, 0.9)',
+                    display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+                }}>
+                    <div style={{
+                        background: 'white', padding: '40px', borderRadius: '16px',
+                        maxWidth: '400px', width: '90%', textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+                    }}>
+                        <h2 style={{ color: '#4A90E2', marginTop: 0 }}>💎 Clarity Pro Required</h2>
+                        <p style={{ color: '#7F8C8D', lineHeight: '1.6' }}>
+                            This team has reached the <strong>21-check free limit</strong>.
+                            Please ask your Team Leader to upgrade to Clarity Pro for unlimited checks!
+                        </p>
+
+                        <button
+                            onClick={() => setShowPaywall(false)}
+                            style={{
+                                background: '#4A90E2', color: 'white', border: 'none',
+                                padding: '15px 30px', borderRadius: '8px', fontWeight: 'bold',
+                                cursor: 'pointer', width: '100%', fontSize: '1.1rem', marginTop: '10px'
+                            }}
+                        >
+                            Got it
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
