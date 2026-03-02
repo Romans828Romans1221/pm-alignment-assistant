@@ -22,7 +22,7 @@ function MemberDashboard() {
         return () => unsubscribe();
     }, [navigate]);
 
-    const fetchUserGoals = async (email) => {
+async function fetchUserGoals(email) {
         try {
             const response = await fetch(`${API_URL}/api/goals?user=${email}`);
             if (!response.ok) throw new Error("Failed to load goals");
