@@ -9,11 +9,26 @@ const { getFirestore } = require('firebase-admin/firestore');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 const app = express();
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://pm-alignment-assistant.uc.r.appspot.com'
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json()); // Essential for reading req.body
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -74,7 +89,7 @@ app.post('/api/analyze-alignment', async (req, res) => {
         };
 
         // --- 1. THE MASTER KEY CHECK ---
-        if (teamCode === 'ClarityAdmin2026') {
+        if (teamCode === process.env.MASTER_KEY) {
             console.log("🔑 MASTER KEY DETECTED: Skipping all usage limits.");
             return proceedToAI();
         }
