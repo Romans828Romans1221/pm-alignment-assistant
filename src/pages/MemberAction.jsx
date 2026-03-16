@@ -188,7 +188,7 @@ const MemberAction = () => {
                     }}>
                         <h2 style={{ color: '#4A90E2', marginTop: 0 }}>💎 Clarity Pro Required</h2>
                         <p style={{ color: '#7F8C8D', lineHeight: '1.6' }}>
-                            This team has reached the <strong>21-check free limit</strong>.
+                            This team has reached the <strong>30-check free limit</strong>.
                             Please ask your Team Leader to upgrade to Clarity Pro for unlimited checks!
                         </p>
 

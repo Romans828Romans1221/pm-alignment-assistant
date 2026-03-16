@@ -98,10 +98,10 @@ app.post('/api/analyze-alignment', async (req, res) => {
         // Check Team Code Limit (Strategic Paywall - 21 Uses)
         const usageRef = db.collection('team-usage').doc(teamCode);
         const usageDoc = await usageRef.get();
-        if (usageDoc.exists && usageDoc.data().count >= 21 && !usageDoc.data().isPro) {
+        if (usageDoc.exists && usageDoc.data().count >= 30 && !usageDoc.data().isPro) {
             return res.status(402).json({
                 error: "Team Limit Reached",
-                message: "This team has used its 21 free checks. Upgrade to Clarity Pro!"
+                message: "This team has used its 30 free checks. Upgrade to Clarity Pro!"
             });
         }
 
