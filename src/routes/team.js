@@ -3,81 +3,81 @@ const router = express.Router();
 const logger = require('../utils/logger');
 const { analyzeAlignment } = require('../services/aiService');
 const {
-    checkAndRecordUsage,
-    getTeamGoal,
-    saveAlignmentResult
+  checkAndRecordUsage,
+  getTeamGoal,
+  saveAlignmentResult
 } = require('../services/teamService');
+const { validateAlignmentCheck } = require('../middleware/validate');
+const { optionalAuth } = require('../middleware/auth');
 
-router.post('/api/analyze-alignment', async (req, res, next) => {
+router.post('/api/analyze-alignment',
+  optionalAuth,
+  validateAlignmentCheck,
+  async (req, res, next) => {
     try {
-        const {
-            teamCode,
-            role,
-            name,
-            understanding,
-            goal,
-            context,
-            deviceId
-        } = req.body;
+      const {
+        teamCode,
+        role,
+        name,
+        understanding,
+        goal,
+        context,
+        deviceId
+      } = req.body;
 
-        // --- VALIDATE REQUIRED FIELDS ---
-        if (!teamCode || !name || !understanding) {
-            return res.status(400).json({
-                error: 'teamCode, name, and understanding are required'
-            });
-        }
+      logger.info('Alignment check received', {
+        teamCode,
+        name,
+        role,
+        uid: req.user?.uid || 'anonymous'
+      });
 
-        logger.info('Alignment check received', { teamCode, name, role });
+      await checkAndRecordUsage(
+        req.app.locals.db,
+        teamCode,
+        deviceId
+      );
 
-        // --- CHECK AND RECORD USAGE ---
-        await checkAndRecordUsage(
-            req.app.locals.db,
-            teamCode,
-            deviceId
+      let leaderGoal = goal;
+      let leaderContext = context || '';
+
+      if (!leaderGoal) {
+        const teamGoal = await getTeamGoal(
+          req.app.locals.db,
+          teamCode
         );
+        leaderGoal = teamGoal.leaderGoal;
+        leaderContext = teamGoal.leaderContext;
+      }
 
-        // --- GET LEADER GOAL ---
-        let leaderGoal = goal;
-        let leaderContext = context || '';
+      const analysis = await analyzeAlignment(
+        leaderGoal,
+        leaderContext,
+        name,
+        role,
+        understanding
+      );
 
-        if (!leaderGoal) {
-            const teamGoal = await getTeamGoal(
-                req.app.locals.db,
-                teamCode
-            );
-            leaderGoal = teamGoal.leaderGoal;
-            leaderContext = teamGoal.leaderContext;
-        }
+      await saveAlignmentResult(
+        req.app.locals.db,
+        teamCode,
+        role,
+        name,
+        understanding,
+        analysis
+      );
 
-        // --- CALL AI SERVICE ---
-        const analysis = await analyzeAlignment(
-            leaderGoal,
-            leaderContext,
-            name,
-            role,
-            understanding
-        );
+      logger.info('Alignment check complete', {
+        teamCode,
+        score: analysis.score
+      });
 
-        // --- SAVE RESULT ---
-        await saveAlignmentResult(
-            req.app.locals.db,
-            teamCode,
-            role,
-            name,
-            understanding,
-            analysis
-        );
-
-        logger.info('Alignment check complete', {
-            teamCode,
-            score: analysis.score
-        });
-
-        return res.json({ success: true, analysis });
+      return res.json({ success: true, analysis });
 
     } catch (error) {
-        next(error);
+      next(error);
     }
-});
+  }
+);
 
 module.exports = router;
