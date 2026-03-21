@@ -16,9 +16,10 @@ const logger = require('./src/utils/logger');
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://pm-alignment-assistant.uc.r.appspot.com'
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'https://pm-alignment-assistant.uc.r.appspot.com'
 ];
 
 const app = express();

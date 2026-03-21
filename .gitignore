@@ -68,4 +68,5 @@ node_modules/
 # dataconnect generated files
 .dataconnect
 
-env_vars.yaml
+env_vars.yamlkey.json
+key.json
