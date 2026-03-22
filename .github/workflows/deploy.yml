@@ -61,4 +61,4 @@ jobs:
             --platform managed \
             --region ${{ env.REGION }} \
             --allow-unauthenticated \
-            --set-env-vars NODE_ENV=production
+            --update-env-vars NODE_ENV=production
