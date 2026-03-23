@@ -1,48 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  signInWithPopup, 
-  signInWithRedirect, 
-  getRedirectResult 
-} from "firebase/auth";
+import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from '../api/firebase';
 import styles from './Home.module.css';
-
-const isMobileSafari = () => {
-  const ua = navigator.userAgent;
-  return /iP(ad|hone|od)/.test(ua) || 
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-};
 
 const Home = () => {
   const [activeTab, setActiveTab] = useState('demo');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          navigate('/leader');
-        }
-      })
-      .catch((error) => {
-        console.error('Redirect sign in error', error);
-      });
-  }, [navigate]);
-
   const handleLogin = async () => {
     try {
       setLoading(true);
-      if (isMobileSafari()) {
-        await signInWithRedirect(auth, googleProvider);
-      } else {
-        await signInWithPopup(auth, googleProvider);
+      googleProvider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      const result = await signInWithPopup(auth, googleProvider);
+      if (result?.user) {
         navigate('/leader');
       }
     } catch (error) {
       console.error('Login Failed:', error.message);
-      alert('Login Issue: ' + error.message);
+      if (error.code === 'auth/popup-blocked') {
+        alert('Please allow popups for this site in your browser settings, then try again.');
+      } else {
+        alert('Login Issue: ' + error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -75,8 +58,8 @@ const Home = () => {
           <h2 className={styles.titleGlow}>Sign in to Clarity</h2>
           <p className={styles.subtitle}>Align your team's goals in seconds.</p>
 
-          <button 
-            onClick={handleLogin} 
+          <button
+            onClick={handleLogin}
             className={styles.googleButton}
             disabled={loading}
           >
