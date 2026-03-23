@@ -19,20 +19,24 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:3001',
-  'https://pm-alignment-assistant.uc.r.appspot.com'
+  'https://pm-alignment-assistant-132738195526.us-central1.run.app'
 ];
 
 const app = express();
 
+// Static files served BEFORE cors middleware
+// so assets never hit cors checks
+app.use(express.static(path.join(__dirname, 'dist')));
+
 app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
 }));
 
 app.use(express.json());
