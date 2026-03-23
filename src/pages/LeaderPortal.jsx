@@ -78,18 +78,30 @@ const LeaderPortal = () => {
         setLoading(true);
         try {
             await setDoc(doc(db, "missions", sessionId), {
-                sessionId, teamName: teamCode, goal, context, createdAt: new Date().toISOString()
+                sessionId,
+                teamName: teamCode,
+                goal,
+                context,
+                createdAt: new Date().toISOString()
             });
+
             const link = `${window.location.origin}/member?code=${sessionId}`;
-            await navigator.clipboard.writeText(link);
-            setGeneratedLink(link);
-            refreshDashboard();
-        } catch (err) {
-            alert("Database Error: " + err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+    setGeneratedLink(link);
+
+    // Clipboard copy — gracefully fails on Safari iOS without blocking the flow
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch (clipboardErr) {
+      console.warn('Clipboard copy not available on this device:', clipboardErr.message);
+    }
+
+    refreshDashboard();
+  } catch (err) {
+    alert("Database Error: " + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
     const handleSaveOnly = async () => {
         if (!teamCode || !goal) return alert("Please enter a Team Code and a Goal.");
