@@ -37,4 +37,4 @@ const analyzeAlignment = async (leaderGoal, leaderContext, name, role, understan
   }
 };
 
-module.exports = { analyzeAlignment };
+module.exports = { analyzeAlignment, buildPrompt };
