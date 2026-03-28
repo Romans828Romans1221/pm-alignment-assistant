@@ -1,16 +1,19 @@
-/* --- CORE CONFIGURATION --- */
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const admin = require('firebase-admin');
-const { getFirestore } = require('firebase-admin/firestore');
+/* --- CORE CONFIGURATION --- root folder index.ts */
+import 'dotenv/config';
+
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+import path from 'path';
+import * as admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 
 /* --- ROUTE IMPORTS --- */
-const teamRoutes = require('./src/routes/team');
-const paymentRoutes = require('./src/routes/payment');
-const { errorHandler } = require('./src/utils/errors');
-const logger = require('./src/utils/logger');
+import teamRoutes from './src/routes/team';
+import paymentRoutes from './src/routes/payment';
+
+// Notice how these imports perfectly match the ES module exports we set up earlier
+import { errorHandler } from './src/utils/errors';
+import logger from './src/utils/logger';
 
 /* --- APP SETUP --- */
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -25,11 +28,11 @@ const allowedOrigins = [
 const app = express();
 
 // Static files served BEFORE cors middleware
-// so assets never hit cors checks
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.use(cors({
-  origin: function(origin, callback) {
+  // We strictly type the origin string and the callback function here
+  origin: function(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -40,20 +43,23 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'dist')));
 
 /* --- DATABASE SETUP --- */
 try {
-    admin.initializeApp();
+    // A safer initialization check for Firebase Admin
+    if (!admin.apps.length) {
+        admin.initializeApp();
+    }
 } catch (e) {
-    // Already initialized
+    logger.error('Firebase initialized failed', { error: e });
 }
 
 const db = getFirestore();
 app.locals.db = db;
 
 /* --- HEALTH CHECK --- */
-app.get('/api/health', (req, res) => {
+// Strictly typing req and res
+app.get('/api/health', (req: Request, res: Response) => {
     res.json({
         status: 'Online',
         mode: NODE_ENV === 'production' ? 'Production' : 'Development',
@@ -69,7 +75,7 @@ app.use(paymentRoutes);
 app.use(errorHandler);
 
 /* --- SERVE FRONTEND --- */
-app.get(/.*/, (req, res) =>
+app.get(/.*/, (req: Request, res: Response) =>
     res.sendFile(path.join(__dirname, 'dist', 'index.html'))
 );
 
