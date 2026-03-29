@@ -70,3 +70,5 @@ node_modules/
 
 env_vars.yamlkey.json
 key.json
+
+build/

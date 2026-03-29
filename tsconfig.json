@@ -3,8 +3,7 @@
     "target": "ES2020",
     "module": "commonjs",
     "lib": ["ES2020"],
-    "outDir": "./dist-ts",
-    "rootDir": "./src",
+    "outDir": "./build",
     "strict": false,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -14,6 +13,6 @@
     "allowJs": true,
     "checkJs": false
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "dist-ts", "tests"]
+  "include": ["src/**/*", "index.ts"],
+  "exclude": ["node_modules", "dist", "build", "tests", "terraform"]
 }
