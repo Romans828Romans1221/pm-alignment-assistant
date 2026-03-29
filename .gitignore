@@ -72,3 +72,9 @@ env_vars.yamlkey.json
 key.json
 
 build/
+
+# Terraform
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.tfvars
