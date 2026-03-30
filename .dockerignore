@@ -1,0 +1,34 @@
+# Dependencies (reinstalled in image)
+node_modules/
+
+# Build artifacts
+dist/
+dist-ts/
+build/
+coverage/
+
+# Version control
+.git/
+.github/
+
+# Infrastructure as code (not needed in container)
+terraform/
+
+# Browser extension (separate artifact)
+extension/
+
+# Documentation
+*.md
+README*
+
+# Environment files (injected at runtime)
+.env
+.env.*
+!.env.example
+
+# IDE / editor
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
