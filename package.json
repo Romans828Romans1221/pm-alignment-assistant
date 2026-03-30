@@ -4,14 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "vite",
-    "build": "vite build",
-    "typecheck": "tsc --noEmit",
-    "test": "jest --testPathPattern=tests/",
-    "test:watch": "jest --watch --testPathPattern=tests/",
-    "dev:backend": "tsx watch index.js"
-  },
+  "start": "node build/index.js",
+  "build:backend": "tsc",
+  "dev": "vite",
+  "build": "vite build",
+  "typecheck": "tsc --noEmit",
+  "test": "jest --testPathPattern=tests/",
+  "test:watch": "jest --watch --testPathPattern=tests/"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
