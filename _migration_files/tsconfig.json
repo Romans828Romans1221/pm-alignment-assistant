@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./build",
+    "rootDir": ".",
+
+    // ── Strictness ──
+    // This is the single most impactful change for code quality.
+    // With strict:true, TypeScript catches null reference errors,
+    // implicit any types, and dozens of other bug categories at
+    // COMPILE TIME instead of in production at 2am.
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    // ── Module Resolution ──
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // ── Compatibility ──
+    "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": false
+  },
+  "include": ["src/**/*", "index.ts"],
+  "exclude": ["node_modules", "dist", "build", "tests", "terraform"]
+}

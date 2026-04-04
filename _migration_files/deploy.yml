@@ -1,0 +1,182 @@
+# ============================================================================
+# Clarity CI/CD Pipeline
+# ============================================================================
+# Triggers on push to main branch or manual dispatch.
+# 
+# Pipeline stages:
+#   1. Lint & Type Check  — Catches errors before they reach production
+#   2. Test               — Runs the full Jest suite
+#   3. Build & Push       — Builds Docker image, pushes to Artifact Registry
+#   4. Deploy             — Deploys to Cloud Run with zero-downtime rollout
+#
+# Required GitHub Secrets:
+#   GCP_PROJECT_ID        — Your Google Cloud project ID
+#   GCP_SA_KEY            — Service account JSON key (base64 encoded)
+#   GCP_REGION            — e.g. us-central1
+# ============================================================================
+
+name: Deploy Clarity
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+
+# Prevent concurrent deployments to the same environment
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  REGISTRY: us-central1-docker.pkg.dev
+  IMAGE_NAME: clarity-backend
+  SERVICE_NAME: clarity-api
+
+jobs:
+  # ──────────────────────────────────────────────
+  # Stage 1: Code Quality
+  # ──────────────────────────────────────────────
+  quality:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+      # Add ESLint once you configure it:
+      # - name: Lint
+      #   run: npm run lint
+
+  # ──────────────────────────────────────────────
+  # Stage 2: Automated Tests
+  # ──────────────────────────────────────────────
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run test suite
+        run: npm test -- --coverage --forceExit
+        env:
+          NODE_ENV: test
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+  # ──────────────────────────────────────────────
+  # Stage 3: Build & Push Docker Image
+  # ──────────────────────────────────────────────
+  build:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
+
+      - name: Generate image metadata
+        id: meta
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          FULL_TAG="${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/clarity-backend/${{ env.IMAGE_NAME }}:${SHORT_SHA}"
+          echo "tags=${FULL_TAG}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --tag ${{ steps.meta.outputs.tags }} \
+            --tag "${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/clarity-backend/${{ env.IMAGE_NAME }}:latest" \
+            --build-arg BUILD_SHA=${{ steps.meta.outputs.short_sha }} \
+            --build-arg BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+            .
+
+      - name: Push to Artifact Registry
+        run: |
+          docker push ${{ steps.meta.outputs.tags }}
+          docker push "${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/clarity-backend/${{ env.IMAGE_NAME }}:latest"
+
+  # ──────────────────────────────────────────────
+  # Stage 4: Deploy to Cloud Run
+  # ──────────────────────────────────────────────
+  deploy:
+    name: Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    needs: build
+    environment: production
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ secrets.GCP_REGION }}
+          image: ${{ needs.build.outputs.image_tag }}
+          flags: |
+            --max-instances=10
+            --min-instances=0
+            --cpu=1
+            --memory=512Mi
+            --timeout=60s
+            --concurrency=80
+
+      - name: Verify deployment health
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ secrets.GCP_REGION }} \
+            --format='value(status.url)')
+          
+          echo "Deployed to: ${SERVICE_URL}"
+          
+          # Hit the health endpoint to verify the deployment is alive
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${SERVICE_URL}/api/v1/health")
+          
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "Health check failed with status ${HTTP_STATUS}"
+            exit 1
+          fi
+          
+          echo "Deployment verified — health check returned 200"
