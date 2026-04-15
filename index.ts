@@ -28,7 +28,7 @@ const allowedOrigins = [
 const app = express();
 
 // Static files served BEFORE cors middleware
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, '..', 'dist')));
 
 app.use(cors({
   // We strictly type the origin string and the callback function here
@@ -76,7 +76,7 @@ app.use(errorHandler);
 
 /* --- SERVE FRONTEND --- */
 app.get(/.*/, (req: Request, res: Response) =>
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'))
+    res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'))
 );
 
 /* --- START SERVER --- */

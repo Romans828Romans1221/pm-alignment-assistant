@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 
-import logger from './logger';
+const logger = require('./logger');
 
 export class AppError extends Error {
   statusCode: number;

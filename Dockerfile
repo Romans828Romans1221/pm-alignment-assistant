@@ -4,8 +4,8 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run build:backend
 RUN npm run build
+RUN npm run build:backend
 
 # --- STAGE 2: Production ---
 FROM node:20-slim
