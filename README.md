@@ -26,3 +26,4 @@ The app is live and working right now!
 - It saves data in real-time.
 - It uses real AI to help people communicate better.
 # CI/CD pipeline active
+# Multi-auth deployed
