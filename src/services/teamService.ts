@@ -29,7 +29,8 @@ export const checkAndRecordUsage = async (
       deviceDoc.exists &&
       deviceData &&
       deviceData.totalFreeChecks >= 15 &&
-      !deviceData.isDevDevice
+      !deviceData.isDevDevice &&
+      false // MVP MODE: paywall disabled for initial testing
     ) {
       logger.warn('Device limit reached', { deviceId });
       throw new PaymentRequiredError(
@@ -52,7 +53,8 @@ export const checkAndRecordUsage = async (
     usageDoc.exists &&
     usageData &&
     usageData.count >= 30 &&
-    !usageData.isPro
+    !usageData.isPro &&
+    false // MVP MODE: paywall disabled for initial testing
   ) {
     logger.warn('Team limit reached', { teamCode });
     throw new PaymentRequiredError(
