@@ -1,7 +1,12 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { 
-  getFirestore, 
+import {
+  getAuth,
+  GoogleAuthProvider,
+  OAuthProvider,
+  EmailAuthProvider
+} from "firebase/auth";
+import {
+  getFirestore,
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager
@@ -21,6 +26,8 @@ const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+export const microsoftProvider = new OAuthProvider('microsoft.com');
+export const emailProvider = new EmailAuthProvider();
 
 export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({
