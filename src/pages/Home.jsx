@@ -104,19 +104,30 @@ const Home = () => {
       <button
         onClick={handleGoogleLogin}
         disabled={loading}
-        className={styles.googleButton}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 20px',
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          backgroundColor: '#2F3241',
+          color: 'white',
+          fontWeight: '600',
+          fontSize: '15px',
+          cursor: loading ? 'not-allowed' : 'pointer',
+          width: '100%'
+        }}
       >
-        <div className={styles.googleContent}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img
             src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
             alt="G"
             style={{ width: '20px', height: '20px' }}
           />
-          <span className={styles.buttonText}>
-            {loading ? 'Signing in...' : 'Continue with Google'}
-          </span>
+          <span>{loading ? 'Signing in...' : 'Continue with Google'}</span>
         </div>
-        <span className={styles.arrow}>→</span>
+        <span>→</span>
       </button>
 
       <button
