@@ -27,6 +27,11 @@ const LeaderPortal = () => {
     const [dashboardLoading, setDashboardLoading] = useState(false);
     const [isUpgrading, setIsUpgrading] = useState(false);
 
+    // Email invite state
+const [teamMembers, setTeamMembers] = useState([{ name: '', email: '' }]);
+const [inviteSending, setInviteSending] = useState(false);
+const [inviteResult, setInviteResult] = useState(null);
+
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 850);
         window.addEventListener('resize', handleResize);
@@ -71,6 +76,28 @@ const LeaderPortal = () => {
             unlockPro();
         }
     }, []);
+
+    //roster for team members
+    useEffect(() => {
+    const loadRoster = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+        try {
+            const token = await user.getIdToken();
+            const res = await fetch(`${API_URL}/api/team-roster`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.members && data.members.length > 0) {
+                setTeamMembers(data.members);
+            }
+        } catch (err) {
+            console.log('No saved roster found');
+        }
+    };
+    loadRoster();
+}, []);
+
 
     // Actions
     const handleGenerateLink = async () => {
@@ -134,6 +161,63 @@ const LeaderPortal = () => {
         }
     };
 
+
+    const handleSendInvites = async () => {
+    if (!generatedLink) return alert('Please generate a member link first before sending invites.');
+    if (!goal) return alert('Please set a team goal before sending invites.');
+
+    const validMembers = teamMembers.filter(m => m.email && m.email.includes('@'));
+    if (validMembers.length === 0) return alert('Please add at least one valid email address.');
+
+    setInviteSending(true);
+    setInviteResult(null);
+
+    try {
+        const user = auth.currentUser;
+        const token = await user.getIdToken();
+
+        const res = await fetch(`${API_URL}/api/send-invites`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                members: validMembers,
+                teamGoal: goal,
+                inviteLink: generatedLink,
+                sessionId
+            })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            setInviteResult({ success: true, message: data.message });
+        } else {
+            setInviteResult({ success: false, message: data.error });
+        }
+    } catch (err) {
+        setInviteResult({ success: false, message: 'Failed to send invites. Please try again.' });
+    } finally {
+        setInviteSending(false);
+    }
+};
+
+const addMember = () => {
+    if (teamMembers.length >= 20) return alert('Maximum 20 members per invite.');
+    setTeamMembers([...teamMembers, { name: '', email: '' }]);
+};
+
+const removeMember = (index) => {
+    setTeamMembers(teamMembers.filter((_, i) => i !== index));
+};
+
+const updateMember = (index, field, value) => {
+    const updated = [...teamMembers];
+    updated[index][field] = value;
+    setTeamMembers(updated);
+};
+
     const handleUpgrade = async () => {
         if (!sessionId) return alert("Please generate a mission link first.");
 
@@ -185,6 +269,97 @@ const LeaderPortal = () => {
                     handleSaveOnly={handleSaveOnly}
                     generatedLink={generatedLink}
                 />
+
+                {/* --- EMAIL INVITE SECTION --- */}
+<div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+    <h4 style={{ margin: '0 0 6px 0', color: '#2C3E50', fontSize: '16px' }}>
+        📧 Invite Your Team
+    </h4>
+    <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#7F8C8D' }}>
+        Add your team members and send them a direct link to the alignment check.
+    </p>
+
+    {teamMembers.map((member, index) => (
+        <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+            <input
+                type="text"
+                placeholder="Name"
+                value={member.name}
+                onChange={(e) => updateMember(index, 'name', e.target.value)}
+                style={{
+                    flex: 1, padding: '8px 12px', borderRadius: '6px',
+                    border: '1px solid #E2E8F0', fontSize: '14px',
+                    backgroundColor: 'white'
+                }}
+            />
+            <input
+                type="email"
+                placeholder="Email address"
+                value={member.email}
+                onChange={(e) => updateMember(index, 'email', e.target.value)}
+                style={{
+                    flex: 2, padding: '8px 12px', borderRadius: '6px',
+                    border: '1px solid #E2E8F0', fontSize: '14px',
+                    backgroundColor: 'white'
+                }}
+            />
+            {teamMembers.length > 1 && (
+                <button
+                    onClick={() => removeMember(index)}
+                    style={{
+                        background: 'none', border: 'none',
+                        color: '#ef4444', cursor: 'pointer',
+                        fontSize: '18px', padding: '4px'
+                    }}
+                >×</button>
+            )}
+        </div>
+    ))}
+
+    <button
+        onClick={addMember}
+        style={{
+            background: 'none', border: '1px dashed #CBD5E0',
+            color: '#4A90E2', padding: '8px 16px', borderRadius: '6px',
+            cursor: 'pointer', fontSize: '13px', width: '100%',
+            marginBottom: '12px'
+        }}
+    >
+        + Add another member
+    </button>
+
+    {inviteResult && (
+        <div style={{
+            padding: '10px 14px', borderRadius: '6px', marginBottom: '12px',
+            backgroundColor: inviteResult.success ? '#f0fdf4' : '#fef2f2',
+            color: inviteResult.success ? '#15803d' : '#dc2626',
+            fontSize: '14px', border: `1px solid ${inviteResult.success ? '#86efac' : '#fca5a5'}`
+        }}>
+            {inviteResult.success ? '✅ ' : '❌ '}{inviteResult.message}
+        </div>
+    )}
+
+    <button
+        onClick={handleSendInvites}
+        disabled={inviteSending || !generatedLink}
+        style={{
+            backgroundColor: generatedLink ? '#4A90E2' : '#94a3b8',
+            color: 'white', border: 'none', padding: '12px 24px',
+            borderRadius: '6px', fontWeight: 'bold',
+            cursor: (inviteSending || !generatedLink) ? 'not-allowed' : 'pointer',
+            width: '100%', fontSize: '14px'
+        }}
+    >
+        {inviteSending ? '📤 Sending invites...' : '📧 Send Invites'}
+    </button>
+
+    {!generatedLink && (
+        <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
+            Generate a member link above first to enable invites
+        </p>
+    )}
+</div>
+
 
                 {/* --- STRIPE UPGRADE BUTTON --- */}
                 <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
