@@ -23,6 +23,7 @@ interface AlignmentRequestBody {
   goal?: string;
   context?: string;
   deviceId?: string;
+  mode?: 'goal-understanding' | 'role-clarity';
 }
 
 router.post('/api/analyze-alignment',
@@ -38,7 +39,8 @@ router.post('/api/analyze-alignment',
         understanding,
         goal,
         context,
-        deviceId
+        deviceId,
+        mode = 'goal-understanding'
       } = req.body;
 
       // We cast req to 'any' just for this line because the standard Express Request 
@@ -73,7 +75,8 @@ router.post('/api/analyze-alignment',
         leaderContext,
         name,
         role,
-        understanding
+        understanding,
+        mode
       );
 
       await saveAlignmentResult(

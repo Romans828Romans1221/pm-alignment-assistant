@@ -20,6 +20,8 @@ const LeaderPortal = () => {
     const [teamCode, setTeamCode] = useState('');
     const [goal, setGoal] = useState('');
     const [context, setContext] = useState('');
+    const [assessmentMode, setAssessmentMode] = useState('goal-understanding');
+    const [roleExpectations, setRoleExpectations] = useState('');
     const [sessionId, setSessionId] = useState('');
     const [loading, setLoading] = useState(false);
     const [generatedLink, setGeneratedLink] = useState('');
@@ -109,6 +111,8 @@ const [inviteResult, setInviteResult] = useState(null);
                 teamName: teamCode,
                 goal,
                 context,
+                assessmentMode,
+                roleExpectations,
                 createdAt: new Date().toISOString()
             });
 
@@ -268,6 +272,10 @@ const updateMember = (index, field, value) => {
                     loading={loading}
                     handleSaveOnly={handleSaveOnly}
                     generatedLink={generatedLink}
+                    assessmentMode={assessmentMode}
+                    setAssessmentMode={setAssessmentMode}
+                    roleExpectations={roleExpectations}
+                    setRoleExpectations={setRoleExpectations}
                 />
 
                 {/* --- EMAIL INVITE SECTION --- */}

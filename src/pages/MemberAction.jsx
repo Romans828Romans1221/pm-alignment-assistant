@@ -67,7 +67,8 @@ const MemberAction = () => {
                     deviceId: localStorage.getItem('clarity_device_id'),
                     name, role, understanding,
                     goal: goalData.goal,
-                    context: goalData.context
+                    context: goalData.roleExpectations || goalData.context,
+                    mode: goalData.assessmentMode || 'goal-understanding'
                 })
             });
 
@@ -149,12 +150,42 @@ const MemberAction = () => {
                 placeholder="e.g. Designer"
             />
 
-            <label className={styles.label}>YOUR UNDERSTANDING</label>
+            <label className={styles.label}>
+                {goalData.assessmentMode === 'role-clarity' 
+                    ? `YOUR ROLE AS ${role.toUpperCase() || 'TEAM MEMBER'}`
+                    : 'YOUR UNDERSTANDING'
+                }
+            </label>
+
+            {goalData.assessmentMode === 'role-clarity' && (
+                <div style={{
+                    background: '#f0f7ff',
+                    borderLeft: '3px solid #4A90E2',
+                    borderRadius: '6px',
+                    padding: '12px 14px',
+                    marginBottom: '12px',
+                    fontSize: '13px',
+                    color: '#2C3E50',
+                    lineHeight: '1.6'
+                }}>
+                    <strong>Answer this:</strong> As a <strong>{role || 'team member'}</strong>, 
+                    what specifically do YOU need to deliver or accomplish to help achieve this goal? 
+                    Include your key deliverables, timeline, and how your work connects to the team's success.
+                </div>
+            )}
+
             <textarea
                 className={styles.textarea}
-                value={understanding} onChange={(e) => setUnderstanding(e.target.value)}
+                value={understanding}
+                onChange={(e) => setUnderstanding(e.target.value)}
                 rows="4"
-                placeholder="What is the goal in your own words?"
+                placeholder={
+                    goalData.assessmentMode === 'role-clarity'
+                        ? `As a ${role || 'team member'}, I need to deliver... My key responsibilities are... My timeline is...`
+                        : (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window))
+                            ? "Tap 'Speak Your Answer' or type here..."
+                            : "What is the goal in your own words?"
+                }
             />
 
             <button
