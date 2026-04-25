@@ -562,7 +562,13 @@ const LandingPage = () => {
             © 2026 tryclarityapp.live
           </span>
         </div>
-        <div style={{ display: 'flex', gap: '24px' }}>
+        <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+          <a
+            href="mailto:team@tryclarityapp.live"
+            style={{ color: '#4A90E2', fontSize: '14px', textDecoration: 'none' }}
+          >
+            team@tryclarityapp.live
+          </a>
           <button className="nav-link" onClick={() => navigate('/login')}>Sign in</button>
           <button className="nav-link" onClick={() => navigate('/login')}>Get started</button>
         </div>
