@@ -1,8 +1,6 @@
-/* src/App.jsx */
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-
-// These paths only work if App.jsx is in the src root!
+import LandingPage from './pages/LandingPage';
 import Home from './pages/Home';
 import LeaderPortal from './pages/LeaderPortal';
 import MemberDashboard from './pages/MemberDashboard';
@@ -14,7 +12,8 @@ function App() {
             <div className="app-container">
                 <canvas id="bg-canvas"></canvas>
                 <Routes>
-                    <Route path="/" element={<Home />} />
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/login" element={<Home />} />
                     <Route path="/leader" element={<LeaderPortal />} />
                     <Route path="/member-dashboard" element={<MemberDashboard />} />
                     <Route path="/member" element={<MemberAction />} />
