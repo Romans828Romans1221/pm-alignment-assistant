@@ -1,8 +1,8 @@
 /* src/components/MissionControl.module.css */
 
 .card {
-    background: #FFFFFF;
-    /* Crisp White */
+    background: #F0F4F8;
+    /* Clean Slate */
     padding: 25px;
     border-radius: 16px;
     border: 1px solid #D1D8E0;
@@ -29,8 +29,8 @@
 .textarea {
     width: 100%;
     box-sizing: border-box;
-    background: #FAFAFA;
-    /* Off-white / Tan tint */
+    background: #FFFFFF;
+    /* Pure White */
     border: 1px solid #D1D8E0;
     border-radius: 8px;
     padding: 12px;

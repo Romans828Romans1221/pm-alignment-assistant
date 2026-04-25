@@ -279,7 +279,7 @@ const updateMember = (index, field, value) => {
                 />
 
                 {/* --- EMAIL INVITE SECTION --- */}
-<div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+<div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#F0F4F8', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
     <h4 style={{ margin: '0 0 6px 0', color: '#2C3E50', fontSize: '16px' }}>
         📧 Invite Your Team
     </h4>
@@ -370,7 +370,7 @@ const updateMember = (index, field, value) => {
 
 
                 {/* --- STRIPE UPGRADE BUTTON --- */}
-                <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+                <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#F0F4F8', borderRadius: '8px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
                     <h4 style={{ margin: '0 0 10px 0', color: '#2C3E50' }}>Unlock Clarity Pro</h4>
                     <p style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: '#7F8C8D' }}>
                         Get unlimited alignment checks and advanced team insights for this mission.

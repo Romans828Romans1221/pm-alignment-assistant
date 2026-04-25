@@ -1,7 +1,7 @@
 /* src/components/TeamPulse.module.css */
 .dashboardCard {
-    background: #FFFFFF;
-    /* Clean White */
+    background: #F0F4F8;
+    /* Clean Slate */
     padding: 20px;
     border-radius: 16px;
     border: 1px solid #D1D8E0;
@@ -60,8 +60,8 @@
 }
 
 .resultItem {
-    background: #FAFAFA;
-    /* Off-White/Tan Tint */
+    background: #FFFFFF;
+    /* Pure White */
     padding: 15px;
     border-radius: 10px;
     border: 1px solid #E2E8F0;
