@@ -1,6 +1,7 @@
 /* src/pages/MemberAction.module.css */
 
 .container {
+    background-color: #F8F9FA;
     padding: 40px;
     max-width: 600px;
     margin: 0 auto;
