@@ -395,8 +395,14 @@ const updateMember = (index, field, value) => {
                 </div>
             </div>
 
-            {/* RIGHT COLUMN: DASHBOARD (Now Modularized) */}
+            {/* RIGHT COLUMN: DASHBOARD */}
             <div style={{ width: '100%', maxWidth: '600px', flex: 1 }}>
+                
+                {/* INVISIBLE SPACER: Perfectly matches the height of the h1 on the left */}
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', visibility: 'hidden' }}>
+                    <h1 style={{ margin: 0, fontSize: isMobile ? '20px' : '24px' }}>Spacer</h1>
+                </div>
+
                 <TeamPulse
                     dashboardData={dashboardData}
                     dashboardLoading={dashboardLoading}
