@@ -477,10 +477,10 @@ const LandingPage = () => {
                 title: 'Startup Teams',
                 desc: 'Move fast without breaking alignment. Weekly clarity checks keep every team member locked in on what matters most right now.'
               },
-              {
+             {
                 icon: '🏛️',
                 title: 'Government & Public Sector',
-                desc: 'DoD-grade clarity for mission-critical operations. Supports Google, Microsoft, and email authentication for any organization.'
+                desc: 'Built for organizations that need clear communication across teams. Supports Google, Microsoft, and email authentication to fit any organization\'s existing workflow.'
               },
               {
                 icon: '🎓',
