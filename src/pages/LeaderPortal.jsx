@@ -150,20 +150,57 @@ const [inviteResult, setInviteResult] = useState(null);
     };
 
     const refreshDashboard = async () => {
-        if (!sessionId) return;
-        setDashboardLoading(true);
-        try {
-            let q = query(collection(db, "alignments"), where("sessionId", "==", sessionId));
-            let querySnapshot = await getDocs(q);
-            const results = [];
-            querySnapshot.forEach((doc) => results.push(doc.data()));
-            setDashboardData(results);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setDashboardLoading(false);
+    if (!sessionId) return;
+    setDashboardLoading(true);
+    try {
+        // Fetch current session results
+        const currentQ = query(
+            collection(db, "alignments"),
+            where("sessionId", "==", sessionId)
+        );
+        const currentSnap = await getDocs(currentQ);
+        const currentResults = [];
+        currentSnap.forEach((doc) => currentResults.push(doc.data()));
+
+        // For each member in current results fetch their full history
+        const memberNames = [...new Set(currentResults.map(r => r.name))];
+        const historyMap = {};
+
+        for (const memberName of memberNames) {
+            const historyQ = query(
+                collection(db, "alignments"),
+                where("name", "==", memberName)
+            );
+            const historySnap = await getDocs(historyQ);
+            const history = [];
+            historySnap.forEach((doc) => {
+                const data = doc.data();
+                history.push({
+                    score: data.analysis?.score || 0,
+                    submittedAt: data.submittedAt,
+                    sessionId: data.sessionId
+                });
+            });
+            // Sort by date ascending
+            history.sort((a, b) => 
+                new Date(a.submittedAt) - new Date(b.submittedAt)
+            );
+            historyMap[memberName] = history;
         }
-    };
+
+        // Attach history to each result
+        const enrichedResults = currentResults.map(r => ({
+            ...r,
+            history: historyMap[r.name] || []
+        }));
+
+        setDashboardData(enrichedResults);
+    } catch (err) {
+        console.error(err);
+    } finally {
+        setDashboardLoading(false);
+    }
+};
 
 
     const handleSendInvites = async () => {
