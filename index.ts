@@ -10,13 +10,12 @@ import { getFirestore } from 'firebase-admin/firestore';
 /* --- ROUTE IMPORTS --- */
 import teamRoutes from './src/routes/team';
 import paymentRoutes from './src/routes/payment';
+import inviteRoutes from './src/routes/invites';
+import documentRoutes from './src/routes/documents';
 
 // Notice how these imports perfectly match the ES module exports we set up earlier
 import { errorHandler } from './src/utils/errors';
 import logger from './src/utils/logger';
-
-//email invites 
-import inviteRoutes from './src/routes/invites';
 
 /* --- APP SETUP --- */
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -80,6 +79,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 app.use(teamRoutes);
 app.use(paymentRoutes);
 app.use('/api', inviteRoutes);
+app.use('/', documentRoutes);
 
 /* --- CENTRAL ERROR HANDLER --- */
 app.use(errorHandler);

@@ -24,6 +24,8 @@
     "express-validator": "^7.3.1",
     "firebase": "^10.14.1",
     "firebase-admin": "^13.6.0",
+    "mammoth": "^1.12.0",
+    "pdfjs-dist": "^5.7.284",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",

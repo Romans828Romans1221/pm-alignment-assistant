@@ -20,6 +20,8 @@ const MissionControl = ({
     setRoleExpectations
 }) => {
     const [isListening, setIsListening] = useState(null);
+    const [documentExtracting, setDocumentExtracting] = useState(false);
+const [documentExtracted, setDocumentExtracted] = useState(false);
     const recognitionRef = useRef(null);
     const voiceSupported = typeof window !== 'undefined' &&
         ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
@@ -66,6 +68,82 @@ const MissionControl = ({
         setIsListening(field);
     };
 
+
+const handleDocumentUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const fileType = file.name.split('.').pop()?.toLowerCase();
+    if (!['pdf', 'docx', 'txt'].includes(fileType)) {
+        alert('Please upload a PDF, Word document (.docx), or text file (.txt)');
+        return;
+    }
+
+    setDocumentExtracting(true);
+    setDocumentExtracted(false);
+
+    try {
+        let text = '';
+
+        if (fileType === 'txt') {
+            text = await file.text();
+        } else if (fileType === 'docx') {
+            const mammoth = await import('mammoth');
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            text = result.value;
+        } else if (fileType === 'pdf') {
+            const pdfjsLib = await import('pdfjs-dist');
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 
+                `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+            const arrayBuffer = await file.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const pdf = await pdfjsLib.getDocument({ data: uint8Array }).promise;
+            let fullText = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                fullText += textContent.items.map(item => item.str).join(' ') + '\n';
+            }
+            text = fullText;
+        }
+
+        if (text.trim().length < 50) {
+            throw new Error('Document appears to be empty or unreadable.');
+        }
+
+        const { API_URL } = await import('../api/config');
+        const res = await fetch(`${API_URL}/api/extract-document`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                documentText: text,
+                fileName: file.name
+            })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            if (data.extracted.goal) setGoal(data.extracted.goal);
+            if (data.extracted.context) setContext(data.extracted.context);
+            if (data.extracted.roleExpectations) {
+                setRoleExpectations(data.extracted.roleExpectations);
+                setAssessmentMode('role-clarity');
+            }
+            setDocumentExtracted(true);
+        } else {
+            throw new Error(data.error || 'Extraction failed');
+        }
+
+    } catch (error) {
+        alert('Could not extract content: ' + error.message + 
+              '\nYou can still enter the details manually below.');
+        setDocumentExtracted(false);
+    } finally {
+        setDocumentExtracting(false);
+    }
+};
     const VoiceButton = ({ field }) => {
         if (!voiceSupported) return null;
         const active = isListening === field;
@@ -105,6 +183,7 @@ const MissionControl = ({
             `}</style>
 
             <h3 className={styles.sectionTitle}>The Mission</h3>
+
 
             {/* TEAM CODE */}
             <label className={styles.label}>TEAM CODE (REQUIRED)</label>
@@ -163,6 +242,108 @@ const MissionControl = ({
                 placeholder="Add details: deadlines, specific tools, constraints... or tap Speak above"
                 rows="4"
             />
+
+            {/* DOCUMENT UPLOAD SECTION */}
+            <div style={{
+                marginBottom: '16px',
+                marginTop: '8px'
+            }}>
+                {!documentExtracting && !documentExtracted && (
+                    <label style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        border: '1px dashed #93c5fd',
+                        backgroundColor: '#f8fbff',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        fontSize: '12px',
+                        color: '#3b82f6',
+                        fontWeight: '500'
+                    }}>
+                        <span>📄</span>
+                        <span>Import from document — PDF, Word, or text</span>
+                        <span style={{
+                            marginLeft: 'auto',
+                            fontSize: '11px',
+                            color: '#93c5fd'
+                        }}>
+                            Auto-fills goal and context
+                        </span>
+                        <input
+                            type="file"
+                            accept=".pdf,.docx,.txt"
+                            style={{ display: 'none' }}
+                            onChange={handleDocumentUpload}
+                        />
+                    </label>
+                )}
+
+                {documentExtracting && (
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        background: '#f0f7ff',
+                        border: '1px solid #bfdbfe',
+                        fontSize: '13px',
+                        color: '#3b82f6'
+                    }}>
+                        <span>🤖</span>
+                        <span style={{ fontWeight: '600' }}>
+                            Reading document...
+                        </span>
+                        <span style={{ fontSize: '12px', color: '#60a5fa' }}>
+                            Gemini is extracting your goal and context
+                        </span>
+                    </div>
+                )}
+
+                {documentExtracted && (
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 14px',
+                        background: '#f0fdf4',
+                        borderRadius: '8px',
+                        border: '1px solid #86efac'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '13px',
+                            color: '#15803d',
+                            fontWeight: '600'
+                        }}>
+                            <span>✅</span>
+                            <span>Document imported — fields populated</span>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setDocumentExtracted(false);
+                                setDocumentExtracting(false);
+                            }}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#15803d',
+                                cursor: 'pointer',
+                                fontSize: '12px',
+                                textDecoration: 'underline',
+                                fontFamily: 'inherit'
+                            }}
+                        >
+                            Upload different file
+                        </button>
+                    </div>
+                )}
+            </div>
 
             {/* ASSESSMENT MODE SELECTOR */}
             <div style={{ marginBottom: '16px' }}>
