@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../api/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { API_URL } from '../api/config';
 
 // 1. IMPORT THE NEW COMPONENT
@@ -101,6 +101,14 @@ const [inviteResult, setInviteResult] = useState(null);
 }, []);
 
 
+    useEffect(() => {
+        if (!sessionId) return;
+        const unsubscribe = refreshDashboard();
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, [sessionId]);
+
     // Actions
     const handleGenerateLink = async () => {
         if (!teamCode || !goal) return alert("Please enter a Team Code and a Goal.");
@@ -149,58 +157,59 @@ const [inviteResult, setInviteResult] = useState(null);
         }
     };
 
-    const refreshDashboard = async () => {
-    if (!sessionId) return;
-    setDashboardLoading(true);
-    try {
-        // Fetch current session results
+    const refreshDashboard = () => {
+        if (!sessionId) return;
+        setDashboardLoading(true);
+
         const currentQ = query(
             collection(db, "alignments"),
             where("sessionId", "==", sessionId)
         );
-        const currentSnap = await getDocs(currentQ);
-        const currentResults = [];
-        currentSnap.forEach((doc) => currentResults.push(doc.data()));
 
-        // For each member in current results fetch their full history
-        const memberNames = [...new Set(currentResults.map(r => r.name))];
-        const historyMap = {};
+        const unsubscribe = onSnapshot(currentQ, async (snapshot) => {
+            try {
+                const currentResults = [];
+                snapshot.forEach((doc) => currentResults.push(doc.data()));
 
-        for (const memberName of memberNames) {
-            const historyQ = query(
-                collection(db, "alignments"),
-                where("name", "==", memberName)
-            );
-            const historySnap = await getDocs(historyQ);
-            const history = [];
-            historySnap.forEach((doc) => {
-                const data = doc.data();
-                history.push({
-                    score: data.analysis?.score || 0,
-                    submittedAt: data.submittedAt,
-                    sessionId: data.sessionId
-                });
-            });
-            // Sort by date ascending
-            history.sort((a, b) => 
-                new Date(a.submittedAt) - new Date(b.submittedAt)
-            );
-            historyMap[memberName] = history;
-        }
+                const memberNames = [...new Set(currentResults.map(r => r.name))];
+                const historyMap = {};
 
-        // Attach history to each result
-        const enrichedResults = currentResults.map(r => ({
-            ...r,
-            history: historyMap[r.name] || []
-        }));
+                for (const memberName of memberNames) {
+                    const historyQ = query(
+                        collection(db, "alignments"),
+                        where("name", "==", memberName)
+                    );
+                    const historySnap = await getDocs(historyQ);
+                    const history = [];
+                    historySnap.forEach((doc) => {
+                        const data = doc.data();
+                        history.push({
+                            score: data.analysis?.score || 0,
+                            submittedAt: data.submittedAt,
+                            sessionId: data.sessionId
+                        });
+                    });
+                    history.sort((a, b) =>
+                        new Date(a.submittedAt) - new Date(b.submittedAt)
+                    );
+                    historyMap[memberName] = history;
+                }
 
-        setDashboardData(enrichedResults);
-    } catch (err) {
-        console.error(err);
-    } finally {
-        setDashboardLoading(false);
-    }
-};
+                const enrichedResults = currentResults.map(r => ({
+                    ...r,
+                    history: historyMap[r.name] || []
+                }));
+
+                setDashboardData(enrichedResults);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setDashboardLoading(false);
+            }
+        });
+
+        return unsubscribe;
+    };
 
 
     const handleSendInvites = async () => {

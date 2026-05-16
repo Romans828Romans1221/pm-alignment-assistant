@@ -110,13 +110,23 @@ const TeamPulse = ({ dashboardData, dashboardLoading, refreshDashboard, isMobile
             {/* Header */}
             <div className={styles.header}>
                 <h3 className={styles.title}>📊 Team Pulse</h3>
-                <button 
-                    onClick={refreshDashboard} 
-                    className={styles.refreshButton}
-                    disabled={dashboardLoading}
-                >
-                    {dashboardLoading ? "..." : "🔄 Refresh"}
-                </button>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    color: '#4ade80',
+                    fontWeight: '600'
+                }}>
+                    <div style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: '#4ade80',
+                        animation: 'pulse 2s infinite'
+                    }} />
+                    Live
+                </div>
             </div>
 
             {dashboardData.length === 0 ? (
