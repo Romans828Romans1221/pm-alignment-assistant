@@ -17,6 +17,8 @@ const MemberAction = () => {
     const [loading, setLoading] = useState(false);
     const [showPaywall, setShowPaywall] = useState(false);
     const [isListening, setIsListening] = useState(false);
+    const [clarification, setClarification] = useState('');
+    const [clarificationSent, setClarificationSent] = useState(false);
     const recognitionRef = useRef(null);
 
     useEffect(() => {
@@ -99,6 +101,7 @@ const MemberAction = () => {
                 await addDoc(collection(db, "alignments"), {
                     sessionId, name, role, understanding,
                     analysis: data.analysis,
+                    clarification: clarification.trim() || null,
                     submittedAt: new Date().toISOString()
                 });
             }
@@ -640,27 +643,114 @@ const MemberAction = () => {
                                     </p>
                                 </div>
 
-                                <div style={{
-                                    textAlign: 'center',
-                                    padding: '16px',
-                                    background: '#f8fafc',
-                                    borderRadius: '12px',
-                                    border: '1px solid #e2e8f0'
-                                }}>
-                                    <p style={{
-                                        color: '#94a3b8',
-                                        fontSize: '14px'
+                                {/* CLARIFICATION QUESTION FIELD */}
+                                {!clarificationSent ? (
+                                    <div style={{
+                                        background: '#f0f7ff',
+                                        border: '1px solid #bfdbfe',
+                                        borderRadius: '16px',
+                                        padding: '20px',
+                                        marginBottom: '16px'
                                     }}>
-                                        Your response has been recorded. ✅
-                                    </p>
-                                    <p style={{
-                                        color: '#64748b',
-                                        fontSize: '13px',
-                                        marginTop: '4px'
+                                        <p style={{
+                                            fontSize: '13px',
+                                            fontWeight: '600',
+                                            color: '#1e40af',
+                                            marginBottom: '6px'
+                                        }}>
+                                            💬 Have a question or need clarification?
+                                        </p>
+                                        <p style={{
+                                            fontSize: '12px',
+                                            color: '#3b82f6',
+                                            marginBottom: '12px',
+                                            lineHeight: '1.5'
+                                        }}>
+                                            Optional — your leader will see this alongside your score.
+                                        </p>
+                                        <textarea
+                                            className="input-field"
+                                            value={clarification}
+                                            onChange={(e) => setClarification(e.target.value)}
+                                            rows={3}
+                                            placeholder="e.g. I am unclear about the timeline for my deliverables. Can we discuss before I start?"
+                                            style={{
+                                                resize: 'none',
+                                                fontSize: '14px',
+                                                marginBottom: '10px'
+                                            }}
+                                        />
+                                        <button
+                                            onClick={async () => {
+                                                if (!clarification.trim()) {
+                                                    setClarificationSent(true);
+                                                    return;
+                                                }
+                                                try {
+                                                    const { addDoc, collection } = await import('firebase/firestore');
+                                                    const { db } = await import('../api/firebase');
+                                                    await addDoc(collection(db, "clarifications"), {
+                                                        sessionId,
+                                                        name,
+                                                        role,
+                                                        clarification: clarification.trim(),
+                                                        submittedAt: new Date().toISOString(),
+                                                        resolved: false
+                                                    });
+                                                    setClarificationSent(true);
+                                                } catch (err) {
+                                                    console.error(err);
+                                                    setClarificationSent(true);
+                                                }
+                                            }}
+                                            style={{
+                                                width: '100%',
+                                                padding: '12px',
+                                                borderRadius: '10px',
+                                                border: 'none',
+                                                background: clarification.trim()
+                                                    ? 'linear-gradient(135deg, #4A90E2, #357ABD)'
+                                                    : '#e2e8f0',
+                                                color: clarification.trim() ? 'white' : '#94a3b8',
+                                                fontWeight: '600',
+                                                fontSize: '14px',
+                                                cursor: 'pointer',
+                                                fontFamily: 'inherit'
+                                            }}
+                                        >
+                                            {clarification.trim() ? '📤 Send Question to Leader' : 'Skip — No Questions'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{
+                                        textAlign: 'center',
+                                        padding: '20px',
+                                        background: '#f0fdf4',
+                                        borderRadius: '12px',
+                                        border: '1px solid #86efac',
+                                        marginBottom: '16px'
                                     }}>
-                                        Your leader will see your alignment score in their dashboard.
-                                    </p>
-                                </div>
+                                        <div style={{ fontSize: '32px', marginBottom: '8px' }}>✅</div>
+                                        <p style={{
+                                            color: '#15803d',
+                                            fontSize: '15px',
+                                            fontWeight: '600',
+                                            marginBottom: '4px'
+                                        }}>
+                                            {clarification.trim()
+                                                ? 'Question sent to your leader'
+                                                : 'Response recorded'
+                                            }
+                                        </p>
+                                        <p style={{
+                                            color: '#64748b',
+                                            fontSize: '13px'
+                                        }}>
+                                            Your leader will see your alignment score
+                                            {clarification.trim() ? ' and your question' : ''} in their dashboard.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
