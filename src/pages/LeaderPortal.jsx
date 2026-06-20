@@ -9,11 +9,15 @@ import { API_URL } from '../api/config';
 // 1. IMPORT THE NEW COMPONENT
 import MissionControl from '../components/MissionControl';
 import TeamPulse from '../components/TeamPulse';
+import ProjectTab from '../components/ProjectTab';
 import styles from './LeaderPortal.module.css';
 
 const LeaderPortal = () => {
     const navigate = useNavigate();
     const [checkingAuth, setCheckingAuth] = useState(true);
+    const [activeTab, setActiveTab] = useState('mission');
+    const [meetingScore, setMeetingScore] = useState(null);
+    const [meetingScoreLoading, setMeetingScoreLoading] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 850);
 
     // State Management
@@ -268,6 +272,42 @@ const updateMember = (index, field, value) => {
     setTeamMembers(updated);
 };
 
+    const generateMeetingScore = async () => {
+        if (dashboardData.length === 0) {
+            return alert('No team submissions yet. Share the member link and wait for submissions first.');
+        }
+        setMeetingScoreLoading(true);
+        try {
+            const user = auth.currentUser;
+            const token = await user.getIdToken();
+            const res = await fetch(`${API_URL}/api/meeting-score`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    goal,
+                    teamData: dashboardData.map(r => ({
+                        name: r.name,
+                        role: r.role,
+                        score: r.analysis?.score || 0,
+                        feedback: r.analysis?.feedback || '',
+                        clarification: r.clarification || null
+                    }))
+                })
+            });
+            const data = await res.json();
+            if (data.success) setMeetingScore(data.assessment);
+            else alert('Could not generate meeting assessment. Try again.');
+        } catch (err) {
+            console.error(err);
+            alert('Error generating meeting score: ' + err.message);
+        } finally {
+            setMeetingScoreLoading(false);
+        }
+    };
+
     const handleUpgrade = async () => {
         if (!sessionId) return alert("Please generate a mission link first.");
 
@@ -297,165 +337,484 @@ const updateMember = (index, field, value) => {
     if (checkingAuth) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><h2>🚀 Initializing...</h2></div>;
 
     return (
-        <div className={styles.container}>
+        <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
 
-            {/* LEFT COLUMN: Controls (Now Modularized) */}
-            <div style={{ width: '100%', maxWidth: '600px', flex: 1.5 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h1 style={{ margin: 0, fontSize: isMobile ? '20px' : '24px' }}>🚀 Leader Control Center</h1>
-                </div>
+            {/* HEADER */}
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '20px'
+            }}>
+                <h1 style={{ margin: 0, fontSize: isMobile ? '20px' : '24px' }}>
+                    🚀 Leader Control Center
+                </h1>
+            </div>
 
-                {/* THE NEW COMPONENT IN ACTION */}
-                <MissionControl
-                    isMobile={isMobile}
-                    teamCode={teamCode}
-                    setTeamCode={setTeamCode}
-                    goal={goal}
-                    setGoal={setGoal}
-                    context={context}
-                    setContext={setContext}
-                    handleGenerateLink={handleGenerateLink}
-                    loading={loading}
-                    handleSaveOnly={handleSaveOnly}
-                    generatedLink={generatedLink}
-                    assessmentMode={assessmentMode}
-                    setAssessmentMode={setAssessmentMode}
-                    roleExpectations={roleExpectations}
-                    setRoleExpectations={setRoleExpectations}
-                />
-
-                {/* --- EMAIL INVITE SECTION --- */}
-<div style={{ marginTop: '20px', padding: '20px', backgroundColor: '#F0F4F8', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-    <h4 style={{ margin: '0 0 6px 0', color: '#2C3E50', fontSize: '16px' }}>
-        📧 Invite Your Team
-    </h4>
-    <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#7F8C8D' }}>
-        Add your team members and send them a direct link to the alignment check.
-    </p>
-
-    {teamMembers.map((member, index) => (
-        <div key={index} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
-            <input
-                type="text"
-                placeholder="Name"
-                value={member.name}
-                onChange={(e) => updateMember(index, 'name', e.target.value)}
-                style={{
-                    flex: 1, padding: '8px 12px', borderRadius: '6px',
-                    border: '1px solid #E2E8F0', fontSize: '14px',
-                    backgroundColor: 'white'
-                }}
-            />
-            <input
-                type="email"
-                placeholder="Email address"
-                value={member.email}
-                onChange={(e) => updateMember(index, 'email', e.target.value)}
-                style={{
-                    flex: 2, padding: '8px 12px', borderRadius: '6px',
-                    border: '1px solid #E2E8F0', fontSize: '14px',
-                    backgroundColor: 'white'
-                }}
-            />
-            {teamMembers.length > 1 && (
-                <button
-                    onClick={() => removeMember(index)}
-                    style={{
-                        background: 'none', border: 'none',
-                        color: '#ef4444', cursor: 'pointer',
-                        fontSize: '18px', padding: '4px'
-                    }}
-                >×</button>
-            )}
-        </div>
-    ))}
-
-    <button
-        onClick={addMember}
-        style={{
-            background: 'none', border: '1px dashed #CBD5E0',
-            color: '#4A90E2', padding: '8px 16px', borderRadius: '6px',
-            cursor: 'pointer', fontSize: '13px', width: '100%',
-            marginBottom: '12px'
-        }}
-    >
-        + Add another member
-    </button>
-
-    {inviteResult && (
-        <div style={{
-            padding: '10px 14px', borderRadius: '6px', marginBottom: '12px',
-            backgroundColor: inviteResult.success ? '#f0fdf4' : '#fef2f2',
-            color: inviteResult.success ? '#15803d' : '#dc2626',
-            fontSize: '14px', border: `1px solid ${inviteResult.success ? '#86efac' : '#fca5a5'}`
-        }}>
-            {inviteResult.success ? '✅ ' : '❌ '}{inviteResult.message}
-        </div>
-    )}
-
-    <button
-        onClick={handleSendInvites}
-        disabled={inviteSending || !generatedLink}
-        style={{
-            backgroundColor: generatedLink ? '#4A90E2' : '#94a3b8',
-            color: 'white', border: 'none', padding: '12px 24px',
-            borderRadius: '6px', fontWeight: 'bold',
-            cursor: (inviteSending || !generatedLink) ? 'not-allowed' : 'pointer',
-            width: '100%', fontSize: '14px'
-        }}
-    >
-        {inviteSending ? '📤 Sending invites...' : '📧 Send Invites'}
-    </button>
-
-    {!generatedLink && (
-        <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
-            Generate a member link above first to enable invites
-        </p>
-    )}
-</div>
-
-
-                {/* --- STRIPE UPGRADE BUTTON --- */}
-                <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#F0F4F8', borderRadius: '8px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
-                    <h4 style={{ margin: '0 0 10px 0', color: '#2C3E50' }}>Unlock Clarity Pro</h4>
-                    <p style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: '#7F8C8D' }}>
-                        Get unlimited alignment checks and advanced team insights for this mission.
-                    </p>
+            {/* THREE TAB NAVIGATION */}
+            <div style={{
+                display: 'flex',
+                gap: '4px',
+                marginBottom: '24px',
+                background: '#f1f5f9',
+                borderRadius: '12px',
+                padding: '4px',
+                border: '1px solid #e2e8f0'
+            }}>
+                {[
+                    { id: 'mission', label: '🎯 Mission', desc: 'Set goals and invite team' },
+                    { id: 'project', label: '📋 Project', desc: 'Milestones and accountability' },
+                    { id: 'analytics', label: '📊 Analytics', desc: 'Trends and intelligence' }
+                ].map((tab) => (
                     <button
-                        onClick={handleUpgrade}
-                        disabled={isUpgrading || !sessionId}
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
                         style={{
-                            backgroundColor: '#4ade80', // Coastal Green for positive action
-                            color: '#1e293b',
+                            flex: 1,
+                            padding: isMobile ? '10px 8px' : '12px 16px',
+                            borderRadius: '8px',
                             border: 'none',
-                            padding: '12px 24px',
-                            borderRadius: '6px',
-                            fontWeight: 'bold',
-                            cursor: (isUpgrading || !sessionId) ? 'not-allowed' : 'pointer',
-                            width: '100%',
-                            opacity: (isUpgrading || !sessionId) ? 0.7 : 1
+                            backgroundColor: activeTab === tab.id ? 'white' : 'transparent',
+                            color: activeTab === tab.id ? '#0f172a' : '#94a3b8',
+                            fontWeight: activeTab === tab.id ? '700' : '500',
+                            fontSize: isMobile ? '13px' : '14px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            fontFamily: 'inherit',
+                            boxShadow: activeTab === tab.id ? '0 1px 4px rgba(0,0,0,0.1)' : 'none'
                         }}
                     >
-                        {isUpgrading ? "🔄 Connecting to Secure Checkout..." : "💎 Upgrade to Pro ($49)"}
+                        {tab.label}
                     </button>
-                </div>
+                ))}
             </div>
 
-            {/* RIGHT COLUMN: DASHBOARD */}
-            <div style={{ width: '100%', maxWidth: '600px', flex: 1 }}>
-                
-                {/* INVISIBLE SPACER: Perfectly matches the height of the h1 on the left */}
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', visibility: 'hidden' }}>
-                    <h1 style={{ margin: 0, fontSize: isMobile ? '20px' : '24px' }}>Spacer</h1>
-                </div>
+            {/* MISSION TAB */}
+            {activeTab === 'mission' && (
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '20px',
+                    alignItems: 'flex-start'
+                }}>
+                    {/* LEFT COLUMN */}
+                    <div style={{ width: '100%', maxWidth: '600px', flex: 1.5, minWidth: '300px' }}>
+                        <MissionControl
+                            isMobile={isMobile}
+                            teamCode={teamCode}
+                            setTeamCode={setTeamCode}
+                            goal={goal}
+                            setGoal={setGoal}
+                            context={context}
+                            setContext={setContext}
+                            handleGenerateLink={handleGenerateLink}
+                            loading={loading}
+                            handleSaveOnly={handleSaveOnly}
+                            generatedLink={generatedLink}
+                            assessmentMode={assessmentMode}
+                            setAssessmentMode={setAssessmentMode}
+                            roleExpectations={roleExpectations}
+                            setRoleExpectations={setRoleExpectations}
+                        />
 
-                <TeamPulse
-                    dashboardData={dashboardData}
-                    dashboardLoading={dashboardLoading}
-                    refreshDashboard={refreshDashboard}
-                    isMobile={isMobile}
+                        {/* MEETING PREVENTION SCORE */}
+                        {dashboardData.length > 0 && (
+                            <div style={{
+                                marginTop: '16px',
+                                padding: '20px',
+                                background: 'white',
+                                borderRadius: '12px',
+                                border: '1px solid #e2e8f0'
+                            }}>
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: meetingScore ? '16px' : '0'
+                                }}>
+                                    <div>
+                                        <h4 style={{
+                                            margin: 0,
+                                            fontSize: '14px',
+                                            fontWeight: '700',
+                                            color: '#0f172a'
+                                        }}>
+                                            🗓️ Do you need a meeting?
+                                        </h4>
+                                        <p style={{
+                                            margin: '2px 0 0',
+                                            fontSize: '12px',
+                                            color: '#94a3b8'
+                                        }}>
+                                            AI analyzes your team's alignment to answer this
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={generateMeetingScore}
+                                        disabled={meetingScoreLoading}
+                                        style={{
+                                            padding: '8px 16px',
+                                            borderRadius: '8px',
+                                            border: 'none',
+                                            background: meetingScoreLoading ? '#94a3b8' : '#4A90E2',
+                                            color: 'white',
+                                            fontSize: '13px',
+                                            fontWeight: '600',
+                                            cursor: meetingScoreLoading ? 'not-allowed' : 'pointer',
+                                            fontFamily: 'inherit',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
+                                        {meetingScoreLoading ? '⏳ Analyzing...' : 'Assess Now'}
+                                    </button>
+                                </div>
+
+                                {meetingScore && (
+                                    <div>
+                                        {/* Verdict */}
+                                        <div style={{
+                                            padding: '12px 16px',
+                                            borderRadius: '10px',
+                                            marginBottom: '12px',
+                                            background: meetingScore.verdict === 'not_needed'
+                                                ? '#f0fdf4'
+                                                : meetingScore.verdict === 'partial'
+                                                ? '#fefce8' : '#fef2f2',
+                                            border: `1px solid ${
+                                                meetingScore.verdict === 'not_needed'
+                                                    ? '#86efac'
+                                                    : meetingScore.verdict === 'partial'
+                                                    ? '#fde047' : '#fca5a5'
+                                            }`
+                                        }}>
+                                            <p style={{
+                                                fontWeight: '700',
+                                                fontSize: '15px',
+                                                color: meetingScore.verdict === 'not_needed'
+                                                    ? '#15803d'
+                                                    : meetingScore.verdict === 'partial'
+                                                    ? '#92400e' : '#dc2626',
+                                                marginBottom: '4px',
+                                                margin: '0 0 4px'
+                                            }}>
+                                                {meetingScore.verdict === 'not_needed'
+                                                    ? '✅ Meeting not needed'
+                                                    : meetingScore.verdict === 'partial'
+                                                    ? '⚠️ Partial meeting recommended'
+                                                    : '❌ Full meeting needed'}
+                                            </p>
+                                            <p style={{
+                                                fontSize: '13px',
+                                                color: '#475569',
+                                                margin: 0
+                                            }}>
+                                                {meetingScore.summary}
+                                            </p>
+                                        </div>
+
+                                        {/* Time saved */}
+                                        {meetingScore.timeSavedMinutes > 0 && (
+                                            <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '10px',
+                                                padding: '10px 14px',
+                                                background: '#f0f7ff',
+                                                borderRadius: '8px',
+                                                marginBottom: '12px',
+                                                border: '1px solid #bfdbfe'
+                                            }}>
+                                                <span style={{ fontSize: '20px' }}>⏱️</span>
+                                                <div>
+                                                    <p style={{
+                                                        fontSize: '13px',
+                                                        fontWeight: '700',
+                                                        color: '#1e40af',
+                                                        margin: 0
+                                                    }}>
+                                                        {meetingScore.timeSavedMinutes} minutes saved
+                                                    </p>
+                                                    <p style={{
+                                                        fontSize: '11px',
+                                                        color: '#3b82f6',
+                                                        margin: 0
+                                                    }}>
+                                                        Across {dashboardData.length} team members
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Who needs attention */}
+                                        {meetingScore.needsAttention?.length > 0 && (
+                                            <div style={{ marginBottom: '12px' }}>
+                                                <p style={{
+                                                    fontSize: '12px',
+                                                    fontWeight: '600',
+                                                    color: '#64748b',
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '0.5px',
+                                                    marginBottom: '8px'
+                                                }}>
+                                                    Needs a conversation
+                                                </p>
+                                                {meetingScore.needsAttention.map((person, i) => (
+                                                    <div key={i} style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        padding: '8px 12px',
+                                                        background: '#fef2f2',
+                                                        borderRadius: '8px',
+                                                        marginBottom: '6px',
+                                                        border: '1px solid #fca5a5'
+                                                    }}>
+                                                        <div>
+                                                            <span style={{
+                                                                fontSize: '13px',
+                                                                fontWeight: '600',
+                                                                color: '#0f172a'
+                                                            }}>
+                                                                {person.name}
+                                                            </span>
+                                                            <span style={{
+                                                                fontSize: '12px',
+                                                                color: '#94a3b8',
+                                                                marginLeft: '6px'
+                                                            }}>
+                                                                {person.role}
+                                                            </span>
+                                                        </div>
+                                                        <span style={{
+                                                            fontSize: '13px',
+                                                            fontWeight: '700',
+                                                            color: '#dc2626'
+                                                        }}>
+                                                            {person.score}%
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Suggested agenda */}
+                                        {meetingScore.suggestedAgenda && (
+                                            <div style={{
+                                                padding: '12px',
+                                                background: '#f8fafc',
+                                                borderRadius: '8px',
+                                                border: '1px solid #e2e8f0'
+                                            }}>
+                                                <p style={{
+                                                    fontSize: '12px',
+                                                    fontWeight: '600',
+                                                    color: '#64748b',
+                                                    textTransform: 'uppercase',
+                                                    letterSpacing: '0.5px',
+                                                    marginBottom: '8px'
+                                                }}>
+                                                    Suggested agenda
+                                                </p>
+                                                <p style={{
+                                                    fontSize: '13px',
+                                                    color: '#1e293b',
+                                                    lineHeight: '1.6',
+                                                    margin: 0,
+                                                    whiteSpace: 'pre-line'
+                                                }}>
+                                                    {meetingScore.suggestedAgenda}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {/* Recommendation */}
+                                        {meetingScore.recommendation && (
+                                            <div style={{
+                                                marginTop: '12px',
+                                                padding: '12px',
+                                                background: '#f0f7ff',
+                                                borderRadius: '8px',
+                                                border: '1px solid #bfdbfe'
+                                            }}>
+                                                <p style={{
+                                                    fontSize: '13px',
+                                                    color: '#1e40af',
+                                                    lineHeight: '1.6',
+                                                    margin: 0
+                                                }}>
+                                                    💡 {meetingScore.recommendation}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* EMAIL INVITES */}
+                        <div style={{
+                            marginTop: '20px',
+                            padding: '20px',
+                            backgroundColor: '#F8FAFC',
+                            borderRadius: '8px',
+                            border: '1px solid #E2E8F0'
+                        }}>
+                            <h4 style={{ margin: '0 0 6px 0', color: '#2C3E50', fontSize: '16px' }}>
+                                📧 Invite Your Team
+                            </h4>
+                            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#7F8C8D' }}>
+                                Add your team members and send them a direct link to the alignment check.
+                            </p>
+                            {teamMembers.map((member, index) => (
+                                <div key={index} style={{
+                                    display: 'flex', gap: '8px',
+                                    marginBottom: '8px', alignItems: 'center'
+                                }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Name"
+                                        value={member.name}
+                                        onChange={(e) => updateMember(index, 'name', e.target.value)}
+                                        style={{
+                                            flex: 1, padding: '8px 12px', borderRadius: '6px',
+                                            border: '1px solid #E2E8F0', fontSize: '14px',
+                                            backgroundColor: 'white'
+                                        }}
+                                    />
+                                    <input
+                                        type="email"
+                                        placeholder="Email address"
+                                        value={member.email}
+                                        onChange={(e) => updateMember(index, 'email', e.target.value)}
+                                        style={{
+                                            flex: 2, padding: '8px 12px', borderRadius: '6px',
+                                            border: '1px solid #E2E8F0', fontSize: '14px',
+                                            backgroundColor: 'white'
+                                        }}
+                                    />
+                                    {teamMembers.length > 1 && (
+                                        <button
+                                            onClick={() => removeMember(index)}
+                                            style={{
+                                                background: 'none', border: 'none',
+                                                color: '#ef4444', cursor: 'pointer',
+                                                fontSize: '18px', padding: '4px'
+                                            }}
+                                        >×</button>
+                                    )}
+                                </div>
+                            ))}
+                            <button
+                                onClick={addMember}
+                                style={{
+                                    background: 'none', border: '1px dashed #CBD5E0',
+                                    color: '#4A90E2', padding: '8px 16px',
+                                    borderRadius: '6px', cursor: 'pointer',
+                                    fontSize: '13px', width: '100%', marginBottom: '12px'
+                                }}
+                            >
+                                + Add another member
+                            </button>
+                            {inviteResult && (
+                                <div style={{
+                                    padding: '10px 14px', borderRadius: '6px',
+                                    marginBottom: '12px',
+                                    backgroundColor: inviteResult.success ? '#f0fdf4' : '#fef2f2',
+                                    color: inviteResult.success ? '#15803d' : '#dc2626',
+                                    fontSize: '14px',
+                                    border: `1px solid ${inviteResult.success ? '#86efac' : '#fca5a5'}`
+                                }}>
+                                    {inviteResult.success ? '✅ ' : '❌ '}{inviteResult.message}
+                                </div>
+                            )}
+                            <button
+                                onClick={handleSendInvites}
+                                disabled={inviteSending || !generatedLink}
+                                style={{
+                                    backgroundColor: generatedLink ? '#4A90E2' : '#94a3b8',
+                                    color: 'white', border: 'none', padding: '12px 24px',
+                                    borderRadius: '6px', fontWeight: 'bold',
+                                    cursor: (inviteSending || !generatedLink) ? 'not-allowed' : 'pointer',
+                                    width: '100%', fontSize: '14px'
+                                }}
+                            >
+                                {inviteSending ? '📤 Sending invites...' : '📧 Send Invites'}
+                            </button>
+                            {!generatedLink && (
+                                <p style={{
+                                    margin: '8px 0 0', fontSize: '12px',
+                                    color: '#94a3b8', textAlign: 'center'
+                                }}>
+                                    Generate a member link above first to enable invites
+                                </p>
+                            )}
+                        </div>
+
+                        {/* STRIPE UPGRADE */}
+                        <div style={{
+                            marginTop: '20px', padding: '15px',
+                            backgroundColor: '#F0F4F8', borderRadius: '8px',
+                            border: '1px solid #E2E8F0', textAlign: 'center'
+                        }}>
+                            <h4 style={{ margin: '0 0 10px 0', color: '#2C3E50' }}>
+                                Unlock Clarity Pro
+                            </h4>
+                            <p style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: '#7F8C8D' }}>
+                                Get unlimited alignment checks and advanced team insights.
+                            </p>
+                            <button
+                                onClick={handleUpgrade}
+                                disabled={isUpgrading || !sessionId}
+                                style={{
+                                    backgroundColor: '#4ade80',
+                                    color: '#1e293b', border: 'none',
+                                    padding: '12px 24px', borderRadius: '6px',
+                                    fontWeight: 'bold',
+                                    cursor: (isUpgrading || !sessionId) ? 'not-allowed' : 'pointer',
+                                    width: '100%',
+                                    opacity: (isUpgrading || !sessionId) ? 0.7 : 1
+                                }}
+                            >
+                                {isUpgrading
+                                    ? "🔄 Connecting to Secure Checkout..."
+                                    : "💎 Upgrade to Pro ($49)"
+                                }
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* RIGHT COLUMN — Team Pulse */}
+                    <div style={{ width: '100%', maxWidth: '600px', flex: 1, minWidth: '280px' }}>
+                        <TeamPulse
+                            dashboardData={dashboardData}
+                            dashboardLoading={dashboardLoading}
+                            refreshDashboard={refreshDashboard}
+                            isMobile={isMobile}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* PROJECT TAB */}
+            {activeTab === 'project' && (
+                <ProjectTab
+                    sessionId={sessionId}
+                    goal={goal}
+                    teamMembers={dashboardData}
                 />
-            </div>
+            )}
+
+            {/* ANALYTICS TAB */}
+            {activeTab === 'analytics' && (
+                <div style={{ width: '100%' }}>
+                    <TeamPulse
+                        dashboardData={dashboardData}
+                        dashboardLoading={dashboardLoading}
+                        refreshDashboard={refreshDashboard}
+                        isMobile={isMobile}
+                    />
+                </div>
+            )}
         </div>
     );
 };

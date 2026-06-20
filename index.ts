@@ -12,6 +12,8 @@ import teamRoutes from './src/routes/team';
 import paymentRoutes from './src/routes/payment';
 import inviteRoutes from './src/routes/invites';
 import documentRoutes from './src/routes/documents';
+import meetingRoutes from './src/routes/meeting';
+
 
 // Notice how these imports perfectly match the ES module exports we set up earlier
 import { errorHandler } from './src/utils/errors';
@@ -29,17 +31,16 @@ const allowedOrigins = [
   'http://localhost:3004',
   'http://localhost:3005',
   'http://localhost:3006',
+  'http://localhost:3007',
+  'http://localhost:3008',
+  'http://localhost:3009',
+  'http://localhost:3010',
   'https://pm-alignment-assistant-132738195526.us-central1.run.app',
   'https://tryclarityapp.live'
 ];
 
 const app = express();
-
-// Static files served BEFORE cors middleware
-app.use(express.static(path.join(__dirname, '..', 'dist')));
-
 app.use(cors({
-  // We strictly type the origin string and the callback function here
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -47,10 +48,14 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '..', 'dist')));
 
 /* --- DATABASE SETUP --- */
 try {
@@ -80,6 +85,8 @@ app.use(teamRoutes);
 app.use(paymentRoutes);
 app.use('/api', inviteRoutes);
 app.use('/', documentRoutes);
+app.use('/', meetingRoutes);
+
 
 /* --- CENTRAL ERROR HANDLER --- */
 app.use(errorHandler);
